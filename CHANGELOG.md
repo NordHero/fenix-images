@@ -5,9 +5,9 @@
 
 ### Features
 
-* add image version/provenance (KAPSULI_INFO, info.json, OCI labels) ([#62](https://github.com/villekr/fenix-images/issues/62)) ([12224fe](https://github.com/villekr/fenix-images/commit/12224fe43cd40e2bec9ff6a27e0bf842fb6745a5))
+* add image version/provenance (CAPSULE_INFO, info.json, OCI labels) ([#62](https://github.com/villekr/fenix-images/issues/62)) ([12224fe](https://github.com/villekr/fenix-images/commit/12224fe43cd40e2bec9ff6a27e0bf842fb6745a5))
 * **base:** bake Oh-My-Zsh, add HEALTHCHECK, drop host-only fonts ([#57](https://github.com/villekr/fenix-images/issues/57)) ([559996f](https://github.com/villekr/fenix-images/commit/559996f0687f92b18117b4f43fed6df801dc96b0))
-* kapsuli-sync — declare and clone a kapsuli's git repos ([#63](https://github.com/villekr/fenix-images/issues/63)) ([af588e6](https://github.com/villekr/fenix-images/commit/af588e69965b4d90ab8212122cb6cf303077b628))
+* capsule-sync — declare and clone a capsule's git repos ([#63](https://github.com/villekr/fenix-images/issues/63)) ([af588e6](https://github.com/villekr/fenix-images/commit/af588e69965b4d90ab8212122cb6cf303077b628))
 * seed ~/.aws/config from non-secret AWS SSO env vars ([#64](https://github.com/villekr/fenix-images/issues/64)) ([83eadc1](https://github.com/villekr/fenix-images/commit/83eadc10b450bc6dc0466e45d3f5f07096281db7))
 
 ## [1.3.0](https://github.com/villekr/fenix-images/compare/v1.2.0...v1.3.0) (2026-10-10)
@@ -28,42 +28,42 @@
 * **prompt:** restore iTerm2 profile switch inside containers ([#44](https://github.com/villekr/fenix-images/issues/44)) ([6a32b3c](https://github.com/villekr/fenix-images/commit/6a32b3cf41a5080bfc39ed10ccc90021ad4bc1f8))
 * single-source iTerm title (prefix once) and restore it on exit ([#49](https://github.com/villekr/fenix-images/issues/49)) ([e663dae](https://github.com/villekr/fenix-images/commit/e663dae3b605ec3a3a8504bc3d375f0b8091000c))
 
-## [1.2.0](https://github.com/villekr/kapsuli-images/compare/v1.1.0...v1.2.0) (2026-10-08)
+## [1.2.0](https://github.com/villekr/fenix-images/compare/v1.1.0...v1.2.0) (2026-10-08)
 
 
 ### Features
 
-* add editors and pager to base image ([#39](https://github.com/villekr/kapsuli-images/issues/39)) ([2389665](https://github.com/villekr/kapsuli-images/commit/2389665d5d6929bc134e619ddf35f1bebfe6223c))
-* **prompt:** set kapsuli title on startup and add login banner ([#37](https://github.com/villekr/kapsuli-images/issues/37)) ([a1776ce](https://github.com/villekr/kapsuli-images/commit/a1776cea1d3e4aff3945765bdfc4919254554fff))
+* add editors and pager to base image ([#39](https://github.com/villekr/fenix-images/issues/39)) ([2389665](https://github.com/villekr/fenix-images/commit/2389665d5d6929bc134e619ddf35f1bebfe6223c))
+* **prompt:** set capsule title on startup and add login banner ([#37](https://github.com/villekr/fenix-images/issues/37)) ([a1776ce](https://github.com/villekr/fenix-images/commit/a1776cea1d3e4aff3945765bdfc4919254554fff))
 
-## [1.1.0](https://github.com/villekr/kapsuli-images/compare/v1.0.1...v1.1.0) (2026-10-07)
+## [1.1.0](https://github.com/villekr/fenix-images/compare/v1.0.1...v1.1.0) (2026-10-07)
 
 
 ### Features
 
-* **prompt:** match host p10k rainbow style; prefix window title with kapsuli name ([#32](https://github.com/villekr/kapsuli-images/issues/32)) ([c9cac0e](https://github.com/villekr/kapsuli-images/commit/c9cac0e7e9136b2784614f0bd0c6b5fc0608a089))
+* **prompt:** match host p10k rainbow style; prefix window title with capsule name ([#32](https://github.com/villekr/fenix-images/issues/32)) ([c9cac0e](https://github.com/villekr/fenix-images/commit/c9cac0e7e9136b2784614f0bd0c6b5fc0608a089))
 
-## [1.0.1](https://github.com/villekr/kapsuli-images/compare/v1.0.0...v1.0.1) (2026-10-06)
+## [1.0.1](https://github.com/villekr/fenix-images/compare/v1.0.0...v1.0.1) (2026-10-06)
 
 
 ### Bug Fixes
 
-* **ci:** slim release workflow to build+push; drop stale provision.sh check ([#22](https://github.com/villekr/kapsuli-images/issues/22)) ([5e77b07](https://github.com/villekr/kapsuli-images/commit/5e77b070d0823c8ede914d4700ecc16ec0161136))
-* **ci:** trigger release on release-published + workflow_dispatch ([#20](https://github.com/villekr/kapsuli-images/issues/20)) ([d6c06f0](https://github.com/villekr/kapsuli-images/commit/d6c06f0eb61c1b6a6f7ae767dd11dc71a89b3749))
+* **ci:** slim release workflow to build+push; drop stale provision.sh check ([#22](https://github.com/villekr/fenix-images/issues/22)) ([5e77b07](https://github.com/villekr/fenix-images/commit/5e77b070d0823c8ede914d4700ecc16ec0161136))
+* **ci:** trigger release on release-published + workflow_dispatch ([#20](https://github.com/villekr/fenix-images/issues/20)) ([d6c06f0](https://github.com/villekr/fenix-images/commit/d6c06f0eb61c1b6a6f7ae767dd11dc71a89b3749))
 
 ## 1.0.0 (2026-10-06)
 
 
 ### Features
 
-* **images:** make go a full dev image; add build-essential to base ([4c59b24](https://github.com/villekr/kapsuli-images/commit/4c59b245cbd78875f24cf59193c97cb42d588c62))
-* layered capsule images with composable go layer (issue [#6](https://github.com/villekr/kapsuli-images/issues/6)/[#7](https://github.com/villekr/kapsuli-images/issues/7)) ([2db9beb](https://github.com/villekr/kapsuli-images/commit/2db9bebe0db93fe079a979e2c917ae5695967044))
+* **images:** make go a full dev image; add build-essential to base ([4c59b24](https://github.com/villekr/fenix-images/commit/4c59b245cbd78875f24cf59193c97cb42d588c62))
+* layered capsule images with composable go layer (issue [#6](https://github.com/villekr/fenix-images/issues/6)/[#7](https://github.com/villekr/fenix-images/issues/7)) ([2db9beb](https://github.com/villekr/fenix-images/commit/2db9bebe0db93fe079a979e2c917ae5695967044))
 
 
 ### Bug Fixes
 
-* **base:** add headless xclip shim to silence clipboard warnings ([276a3f5](https://github.com/villekr/kapsuli-images/commit/276a3f500039eacc6a997d983a4babc33e1f3967))
-* **base:** apply LTS security updates at build; keep ubuntu 24.04 pinned ([#8](https://github.com/villekr/kapsuli-images/issues/8)) ([6d98e90](https://github.com/villekr/kapsuli-images/commit/6d98e90d5545ed3c89a19c580834dd9fb2564346))
-* **base:** show a kapsuli animal icon in the prompt instead of 'devbox' text ([#10](https://github.com/villekr/kapsuli-images/issues/10)) ([398adc1](https://github.com/villekr/kapsuli-images/commit/398adc159bcfd1bde9d675b251793a0d24059dc7))
-* **ci:** build images on the shared docker daemon so chained FROM resolves ([4f9cc7e](https://github.com/villekr/kapsuli-images/commit/4f9cc7ed859bb3e479ece03fda3e9184c53cd58a))
-* **ci:** make Trivy SARIF upload non-blocking ([#19](https://github.com/villekr/kapsuli-images/issues/19)) ([7ae95f2](https://github.com/villekr/kapsuli-images/commit/7ae95f290ea804bd7ef4ea18ba61a11867049a38))
+* **base:** add headless xclip shim to silence clipboard warnings ([276a3f5](https://github.com/villekr/fenix-images/commit/276a3f500039eacc6a997d983a4babc33e1f3967))
+* **base:** apply LTS security updates at build; keep ubuntu 24.04 pinned ([#8](https://github.com/villekr/fenix-images/issues/8)) ([6d98e90](https://github.com/villekr/fenix-images/commit/6d98e90d5545ed3c89a19c580834dd9fb2564346))
+* **base:** show a capsule animal icon in the prompt instead of 'devbox' text ([#10](https://github.com/villekr/fenix-images/issues/10)) ([398adc1](https://github.com/villekr/fenix-images/commit/398adc159bcfd1bde9d675b251793a0d24059dc7))
+* **ci:** build images on the shared docker daemon so chained FROM resolves ([4f9cc7e](https://github.com/villekr/fenix-images/commit/4f9cc7ed859bb3e479ece03fda3e9184c53cd58a))
+* **ci:** make Trivy SARIF upload non-blocking ([#19](https://github.com/villekr/fenix-images/issues/19)) ([7ae95f2](https://github.com/villekr/fenix-images/commit/7ae95f290ea804bd7ef4ea18ba61a11867049a38))

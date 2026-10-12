@@ -10,14 +10,14 @@ This is **Layer 3** of [fenix](https://github.com/NordHero/fenix): the
 development model that fenix (host Layers 0–2) explicitly leaves out of scope.
 It is self-contained — usable with nothing but `docker compose`.
 
-A **kapsuli** is an encapsulated development environment definition: a folder
+A **capsule** is an encapsulated development environment definition: a folder
 with two declarative files, `compose.yaml` (image + volume) and `mise.toml`
 (tools + versions). No scripts, no Dockerfile, nothing to maintain per project.
 
 ## How it works
 
 ```
-This repo (clone + build once)         A kapsuli (a folder you own)
+This repo (clone + build once)         A capsule (a folder you own)
 ┌─────────────────────────────┐        ┌───────────────────────────────┐
 │ Dockerfile: base + mise     │        │ compose.yaml                  │
 │ extra-tools.sh (shim)       │◀───────│   image: fenix-base:local     │
@@ -49,7 +49,7 @@ cd fenix-images
 That local image is all your definitions reference — nothing is pulled from a
 registry.
 
-### 2. Run the example kapsuli
+### 2. Run the example capsule
 
 This repo ships a ready one at [`example/`](example/). Run it
 as-is or copy it as a starting point:
@@ -57,11 +57,11 @@ as-is or copy it as a starting point:
 ```bash
 cd example
 docker compose up -d          # first boot provisions the volume (installs tools)
-docker compose exec dev zsh   # work inside the kapsuli
+docker compose exec dev zsh   # work inside the capsule
 docker compose down           # stop; the volume (your environment) is preserved
 ```
 
-Open more shells in the same running kapsuli with another
+Open more shells in the same running capsule with another
 `docker compose exec dev zsh`. Inside, authenticate the CLIs you use
 (`gh auth login`, `gcloud auth login`, `aws configure`, `az login`) — tokens
 persist in the home volume, never in the image or repo.
@@ -81,25 +81,25 @@ See [`example/compose.yaml`](example/compose.yaml) for both.
 
 ### Clone your repos
 
-Declare the repos a kapsuli works on with `KAPSULI_REPOS` in `compose.yaml`
+Declare the repos a capsule works on with `CAPSULE_REPOS` in `compose.yaml`
 (space-separated `owner/repo`), then clone them after authenticating:
 
 ```bash
 gh auth login
-kapsuli-sync          # clones declared repos into ~/workspace, skips existing
+capsule-sync          # clones declared repos into ~/workspace, skips existing
 ```
 
-`kapsuli-sync` is idempotent (existing checkouts are never touched) and clones
+`capsule-sync` is idempotent (existing checkouts are never touched) and clones
 over HTTPS via the `gh` credential helper. First boot attempts it automatically
 for any public repos and prints a reminder for the rest. For per-repo target
-dir/branch, mount a manifest at `/home/dev/.kapsuli-repos` (see
+dir/branch, mount a manifest at `/home/dev/.capsule-repos` (see
 [`example/repos.txt`](example/repos.txt)).
 
 ### 3. Make it yours
 
 Edit `example/mise.toml` to declare your tools (see
-[`docs/TOOLS.md`](docs/TOOLS.md)) and `compose.yaml` to set `KAPSULI_NAME`, git
-identity, and welcome text. Copy the folder per project to keep each kapsuli
+[`docs/TOOLS.md`](docs/TOOLS.md)) and `compose.yaml` to set `CAPSULE_NAME`, git
+identity, and welcome text. Copy the folder per project to keep each capsule
 self-contained.
 
 ## What this is not
@@ -119,7 +119,7 @@ self-contained.
 cd example && docker compose up -d && docker compose exec dev zsh
 ```
 
-The example kapsuli doubles as the reference used while developing the image.
+The example capsule doubles as the reference used while developing the image.
 
 ## For contributors and agents
 

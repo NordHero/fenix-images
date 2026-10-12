@@ -65,13 +65,13 @@ COPY --chown=${DEV_UID}:${DEV_GID} base/p10k.zsh /opt/devbox-skel/.p10k.zsh
 COPY --chmod=0755 base/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY --chmod=0755 base/provision.sh /usr/local/bin/provision.sh
 COPY --chmod=0755 base/xclip-shim.sh /usr/local/bin/xclip
-COPY --chmod=0755 base/kapsuli-info.sh /usr/local/bin/kapsuli-info
-COPY --chmod=0755 base/kapsuli-sync.sh /usr/local/bin/kapsuli-sync
+COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
+COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
-RUN mkdir -p /etc/kapsuli \
+RUN mkdir -p /etc/capsule \
     && printf '{\n  "image_version": "%s",\n  "source_commit": "%s",\n  "build_date": "%s",\n  "base_os": "ubuntu:24.04"\n}\n' \
-      "${IMAGE_VERSION}" "${SOURCE_COMMIT}" "${BUILD_DATE}" > /etc/kapsuli/info.json
+      "${IMAGE_VERSION}" "${SOURCE_COMMIT}" "${BUILD_DATE}" > /etc/capsule/info.json
 
 LABEL org.opencontainers.image.title="fenix-base" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
@@ -80,7 +80,7 @@ LABEL org.opencontainers.image.title="fenix-base" \
       org.opencontainers.image.source="https://github.com/NordHero/fenix-images" \
       org.opencontainers.image.base.name="ubuntu:24.04"
 
-ENV KAPSULI_INFO="fenix-base ${IMAGE_VERSION} (${SOURCE_COMMIT}, built ${BUILD_DATE})"
+ENV CAPSULE_INFO="fenix-base ${IMAGE_VERSION} (${SOURCE_COMMIT}, built ${BUILD_DATE})"
 
 USER ${DEV_USER}
 WORKDIR ${DEV_HOME}

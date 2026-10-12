@@ -1,8 +1,8 @@
-Welcome to the example kapsuli.
+Welcome to the example capsule.
 A declarative, encapsulated dev environment.
 
 - Tools are provisioned from mise.toml
 - Auth lives in the home volume (run: gh auth login)
 - This text comes from ./welcome.txt
 
-Edit welcome.txt in this kapsuli folder to change this message.
+Edit welcome.txt in this capsule folder to change this message.

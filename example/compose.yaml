@@ -7,22 +7,22 @@ services:
       - ./mise.toml:/home/dev/mise.toml:ro
       # Welcome text, option 2 (rich): mount a plain text file, printed
       # verbatim at login (never executed). Multi-line is fine.
-      # - ./welcome.txt:/home/dev/.kapsuli-welcome:ro
+      # - ./welcome.txt:/home/dev/.capsule-welcome:ro
       # Repos, option 2 (manifest): mount a file for per-repo dir/branch.
-      # - ./repos.txt:/home/dev/.kapsuli-repos:ro
+      # - ./repos.txt:/home/dev/.capsule-repos:ro
       # AWS config, option 2 (mounted file): mount a prewritten, non-secret
       # ~/.aws/config read-only. Takes precedence over the AWS_SSO_* env vars
       # below; you then only run `aws sso login` — no `aws configure sso`.
       # - ./aws-config:/home/dev/.aws/config:ro
     environment:
-      KAPSULI_NAME: "example"
+      CAPSULE_NAME: "example"
       GIT_USER_NAME: "Ada Lovelace"
       GIT_USER_EMAIL: "ada@example.com"
       # Welcome text, option 1 (simple): a one-line banner shown at login.
-      KAPSULI_WELCOME: "Prod-adjacent env — do NOT run terraform apply here."
+      CAPSULE_WELCOME: "Prod-adjacent env — do NOT run terraform apply here."
       # Repos, option 1 (simple): space-separated owner/repo cloned into
-      # ~/workspace by `kapsuli-sync` (run it after `gh auth login`).
-      # KAPSULI_REPOS: "NordHero/fenix-images villekr/kapsuli"
+      # ~/workspace by `capsule-sync` (run it after `gh auth login`).
+      # CAPSULE_REPOS: "NordHero/fenix-images"
       # AWS SSO, option 1 (simple): non-secret identifiers only. When set on a
       # fresh volume (and no ~/.aws/config is mounted), the entrypoint seeds
       # ~/.aws/config so you only run `aws sso login` — no `aws configure sso`.

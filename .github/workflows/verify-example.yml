@@ -33,7 +33,7 @@ jobs:
       - name: Build base image (fenix-base:local)
         run: ./build-images.sh
 
-      - name: Start the example kapsuli
+      - name: Start the example capsule
         working-directory: example
         run: |
           set -ex
