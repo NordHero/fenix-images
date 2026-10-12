@@ -46,9 +46,7 @@ publishes no image; the documented flow is build-it-yourself.
 - `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It
   is the canonical default: the reference used while developing the image and
   the target of CI's config validation. `example/mise.toml` is the extensive
-  default tool list; keep it authoritative. The kapsuli CLI does not couple to
-  it — users opt in by copying it into their own
-  `~/.kapsuli/archetype/mise.toml` (what `kapsuli new` scaffolds from).
+  default tool list; keep it authoritative.
 - `docs/` — human depth: `DESIGN.md` (runtime behavior), `TOOLS.md` (declaring
   tools in `mise.toml`).
 - `.github/workflows/` — `build-images.yml` (PR/main: build + verify + scan),

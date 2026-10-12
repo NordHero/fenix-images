@@ -22,7 +22,7 @@ services:
       CAPSULE_WELCOME: "Prod-adjacent env — do NOT run terraform apply here."
       # Repos, option 1 (simple): space-separated owner/repo cloned into
       # ~/workspace by `capsule-sync` (run it after `gh auth login`).
-      # CAPSULE_REPOS: "NordHero/fenix-images villekr/kapsuli"
+      # CAPSULE_REPOS: "NordHero/fenix-images"
       # AWS SSO, option 1 (simple): non-secret identifiers only. When set on a
       # fresh volume (and no ~/.aws/config is mounted), the entrypoint seeds
       # ~/.aws/config so you only run `aws sso login` — no `aws configure sso`.
