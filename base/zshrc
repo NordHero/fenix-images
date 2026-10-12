@@ -1,0 +1,63 @@
+export ZSH="$HOME/.oh-my-zsh"
+ZSH_THEME="powerlevel10k/powerlevel10k"
+plugins=(git)
+source "$ZSH/oh-my-zsh.sh"
+
+[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
+
+[ -f "$HOME/.keyring-env" ] && source "$HOME/.keyring-env"
+
+export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
+command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+
+if [[ $- == *i* ]] && command -v gh >/dev/null 2>&1; then
+  gh auth status >/dev/null 2>&1 || \
+    echo "GitHub not authenticated. Run: gh auth login"
+fi
+
+KAPSULI_LABEL="${KAPSULI_NAME:-$HOST}"
+
+DISABLE_AUTO_TITLE=true
+
+_kapsuli_set_title() {
+  local cwd="${PWD/#$HOME/~}"
+  printf '\033]2;[kapsuli:%s] %s\007' "${KAPSULI_LABEL}" "${cwd}"
+  printf '\033]1;[kapsuli:%s] %s\007' "${KAPSULI_LABEL}" "${cwd}"
+}
+
+_kapsuli_clear_title() {
+  printf '\033]2;\007'
+  printf '\033]1;\007'
+}
+
+_kapsuli_profile_enabled() {
+  [[ "${KAPSULI_ITERM_PROFILE_SWITCH:-1}" != "0" ]]
+}
+
+if [[ -o interactive ]]; then
+  if _kapsuli_profile_enabled; then
+    printf '\033]1337;SetProfile=%s\007' "${ITERM_DEVCONTAINER_PROFILE:-fenix-devcontainer}"
+  fi
+
+  autoload -Uz add-zsh-hook
+  add-zsh-hook precmd _kapsuli_set_title
+  add-zsh-hook chpwd _kapsuli_set_title
+  _kapsuli_set_title
+
+  print -P "%F{cyan}kapsuli%f: %F{green}${KAPSULI_LABEL}%f"
+  [[ -n "${KAPSULI_INFO:-}" ]] && print -P "%F{8}${KAPSULI_INFO}%f"
+
+  if [[ -f "$HOME/.kapsuli-welcome" ]]; then
+    cat -- "$HOME/.kapsuli-welcome"
+  elif [[ -n "${KAPSULI_WELCOME:-}" ]]; then
+    print -r -- "${KAPSULI_WELCOME}"
+  fi
+
+  _kapsuli_on_exit() {
+    _kapsuli_clear_title
+    if _kapsuli_profile_enabled; then
+      printf '\033]1337;SetProfile=%s\007' "${ITERM_DEFAULT_PROFILE:-fenix}"
+    fi
+  }
+  add-zsh-hook zshexit _kapsuli_on_exit
+fi

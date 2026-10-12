@@ -1,0 +1,138 @@
+name: verify-example
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 6 * * 1"
+  pull_request:
+    paths:
+      - "example/**"
+      - "Dockerfile"
+      - "base/**"
+      - "extra-tools.sh"
+      - "build-images.sh"
+      - ".github/workflows/verify-example.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: verify-example-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify-example:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build base image (fenix-base:local)
+        run: ./build-images.sh
+
+      - name: Start the example kapsuli
+        working-directory: example
+        run: |
+          set -ex
+          docker compose up -d
+          docker compose ps
+
+      - name: Wait for the container to be healthy
+        working-directory: example
+        run: |
+          set -ex
+          cid="$(docker compose ps -q dev)"
+          test -n "$cid"
+          for i in $(seq 1 30); do
+            h="$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$cid")"
+            echo "health=$h"
+            test "$h" = "healthy" && break
+            test "$h" = "unhealthy" && { echo "container unhealthy"; exit 1; }
+            sleep 4
+          done
+          test "$(docker inspect -f '{{.State.Running}}' "$cid")" = "true"
+
+      - name: Install the full declared toolset
+        working-directory: example
+        run: |
+          set -ex
+          docker compose exec -T \
+            -e MISE_FETCH_REMOTE_VERSIONS_TIMEOUT=120s \
+            -e MISE_HTTP_TIMEOUT=120s \
+            dev bash -lc '
+            set -ex
+            mise trust "$HOME/mise.toml"
+            eval "$(mise activate bash)"
+            mise ls --current
+            # Retry to absorb transient registry/proxy timeouts (e.g.
+            # proxy.golang.org for go: backends); mise install is idempotent.
+            n=0
+            until mise install --yes; do
+              n=$((n+1))
+              test "$n" -ge 3 && { echo "mise install failed after $n attempts"; exit 1; }
+              echo "mise install attempt $n failed; retrying"
+              sleep 10
+            done
+          '
+
+      - name: Provision EXTRA_TOOLS (no mise backend)
+        working-directory: example
+        run: |
+          set -ex
+          docker compose exec -T dev bash -lc '
+            set -ex
+            extra-tools.sh
+          '
+
+      - name: Assert every declared tool resolves and runs
+        working-directory: example
+        run: |
+          set -ex
+          docker compose exec -T dev bash -lc '
+            set -ex
+            eval "$(mise activate bash)"
+
+            # Every pinned [tools] entry must resolve to an installed version;
+            # a non-empty --missing list is a failure.
+            mise ls --current --missing | tee /tmp/missing.txt
+            test ! -s /tmp/missing.txt
+
+            # Pinned language versions must match exactly.
+            go version | grep -q "go1.27.2"
+            python --version 2>&1 | grep -q "3.15.0"
+
+            # Smoke-run a representative tool from each category.
+            gopls version
+            staticcheck --version
+            golangci-lint version
+            goreleaser --version
+            pre-commit --version
+            prek --version
+            terraform version
+            tofu version
+            terragrunt --version
+            kubectl version --client
+            argocd version --client
+            aws --version
+            az version
+            gcloud --version
+            uv --version
+          '
+
+      - name: Assert EXTRA_TOOLS installed
+        working-directory: example
+        run: |
+          set -ex
+          docker compose exec -T dev bash -lc '
+            set -ex
+            command -v kiro-cli
+            kiro-cli --version
+          '
+
+      - name: Tear down
+        if: always()
+        working-directory: example
+        run: docker compose down -v || true

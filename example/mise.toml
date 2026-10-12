@@ -1,0 +1,39 @@
+# Canonical default tool manifest for a kapsuli. Copy this folder as a starting
+# point, then trim or extend the lists below.
+
+[tools]
+# Languages
+go = "1.27.2"
+python = "3.15.0"
+
+# Go dev tooling
+"go:golang.org/x/tools/gopls" = "latest"
+"go:golang.org/x/tools/cmd/goimports" = "latest"
+"go:honnef.co/go/tools/cmd/staticcheck" = "latest"
+golangci-lint = "2.14.0"
+goreleaser = "2.18.2"
+
+# Pre-commit / hooks
+pre-commit = "latest"
+"ubi:j178/prek" = "0.5.5"
+
+# Infrastructure as code
+terraform = "1.16.5"
+opentofu = "1.13.1"
+terragrunt = "0.69.9"
+
+# Kubernetes
+kubectl = "1.37.1"
+argocd = "2.13.2"
+
+# Cloud CLIs (installed through mise backends; verified + lockable)
+awscli = "2.37.9"
+"pypi:azure-cli" = "2.67.0"
+gcloud = { version = "497.0.0", components = ["gke-gcloud-auth-plugin"] }
+"aqua:github/copilot-cli" = "latest"
+
+# Misc
+uv = "latest"
+
+[env]
+EXTRA_TOOLS = "kiro-cli"

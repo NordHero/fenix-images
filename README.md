@@ -1,0 +1,129 @@
+# fenix-images
+
+A single, minimal, non-root **development base image** with
+[mise](https://mise.jdx.dev) baked in, plus a ready-to-copy capsule template.
+You don't build a custom image per project — you declare the tools you want in a
+`mise.toml`, and they are installed into the capsule's home volume on first
+start.
+
+This is **Layer 3** of [fenix](https://github.com/villekr/fenix): the
+development model that fenix (host Layers 0–2) explicitly leaves out of scope.
+It is self-contained — usable with nothing but `docker compose`.
+
+A **kapsuli** is an encapsulated development environment definition: a folder
+with two declarative files, `compose.yaml` (image + volume) and `mise.toml`
+(tools + versions). No scripts, no Dockerfile, nothing to maintain per project.
+
+## How it works
+
+```
+This repo (clone + build once)         A kapsuli (a folder you own)
+┌─────────────────────────────┐        ┌───────────────────────────────┐
+│ Dockerfile: base + mise     │        │ compose.yaml                  │
+│ extra-tools.sh (shim)       │◀───────│   image: fenix-base:local     │
+│ build-images.sh builds it   │  use   │   mounts ./mise.toml          │
+│ -> fenix-base:local         │        │ mise.toml  (tools + versions) │
+└─────────────────────────────┘        └───────────────────────────────┘
+```
+
+The base image is `ubuntu:24.04` with a non-root `dev` user, zsh +
+Powerlevel10k, `gh`, a keyring vault, editors, and mise. mise installs the tools
+you declare into the home volume on first boot; the volume persists, so later
+starts are instant. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full runtime
+behavior and [`docs/TOOLS.md`](docs/TOOLS.md) for declaring tools.
+
+## Get started
+
+Prerequisites: Docker (with the Compose plugin) and git. For the Powerlevel10k
+prompt icons, install a Nerd Font (e.g. MesloLGS NF) on the host and select it
+in your terminal — the image ships no fonts.
+
+### 1. Clone and build the base image
+
+```bash
+git clone https://github.com/villekr/fenix-images.git
+cd fenix-images
+./build-images.sh             # builds fenix-base:local
+```
+
+That local image is all your definitions reference — nothing is pulled from a
+registry.
+
+### 2. Run the example kapsuli
+
+This repo ships a ready one at [`example/`](example/). Run it
+as-is or copy it as a starting point:
+
+```bash
+cd example
+docker compose up -d          # first boot provisions the volume (installs tools)
+docker compose exec dev zsh   # work inside the kapsuli
+docker compose down           # stop; the volume (your environment) is preserved
+```
+
+Open more shells in the same running kapsuli with another
+`docker compose exec dev zsh`. Inside, authenticate the CLIs you use
+(`gh auth login`, `gcloud auth login`, `aws configure`, `az login`) — tokens
+persist in the home volume, never in the image or repo.
+
+For AWS, configure the CLI two ways (both non-secret; tokens still come from
+`aws sso login` into the home volume):
+
+- **Env (simple):** set the `AWS_SSO_*` identifiers in `compose.yaml`. On a
+  fresh volume the entrypoint seeds `~/.aws/config`, so you only run
+  `aws sso login` — no `aws configure sso`.
+- **Mounted file:** mount a prewritten `~/.aws/config` read-only at
+  `/home/dev/.aws/config` (see [`example/aws-config`](example/aws-config)). This
+  supports multiple profiles/sso-sessions and takes precedence over the
+  `AWS_SSO_*` env seeding.
+
+See [`example/compose.yaml`](example/compose.yaml) for both.
+
+### Clone your repos
+
+Declare the repos a kapsuli works on with `KAPSULI_REPOS` in `compose.yaml`
+(space-separated `owner/repo`), then clone them after authenticating:
+
+```bash
+gh auth login
+kapsuli-sync          # clones declared repos into ~/workspace, skips existing
+```
+
+`kapsuli-sync` is idempotent (existing checkouts are never touched) and clones
+over HTTPS via the `gh` credential helper. First boot attempts it automatically
+for any public repos and prints a reminder for the rest. For per-repo target
+dir/branch, mount a manifest at `/home/dev/.kapsuli-repos` (see
+[`example/repos.txt`](example/repos.txt)).
+
+### 3. Make it yours
+
+Edit `example/mise.toml` to declare your tools (see
+[`docs/TOOLS.md`](docs/TOOLS.md)) and `compose.yaml` to set `KAPSULI_NAME`, git
+identity, and welcome text. Copy the folder per project to keep each kapsuli
+self-contained.
+
+## What this is not
+
+- Not a per-project image builder — tools are declared in `mise.toml`, not baked
+  into images.
+- Not a registry-first flow — the documented path is build-it-yourself
+  (`fenix-base:local`). This repo is private; no image is published for
+  consumption.
+- Not a host bootstrapper — that is fenix (Layers 0–2). This repo is Layer 3.
+- Not a place for project or customer content, cloud/AI work, or secrets.
+
+## Developing this image
+
+```bash
+./build-images.sh             # -> fenix-base:local
+cd example && docker compose up -d && docker compose exec dev zsh
+```
+
+The example kapsuli doubles as the reference used while developing the image.
+
+## For contributors and agents
+
+[`AGENTS.md`](AGENTS.md) lists conventions for AI agents. See
+[`CONTRIBUTING.md`](CONTRIBUTING.md) for local setup and quality gates,
+[`SECURITY.md`](SECURITY.md) for the trust model and how to report issues, and
+[`LICENSE`](LICENSE) (MIT).

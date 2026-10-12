@@ -1,0 +1,39 @@
+services:
+  dev:
+    image: fenix-base:local
+    container_name: example
+    volumes:
+      - example-home:/home/dev
+      - ./mise.toml:/home/dev/mise.toml:ro
+      # Welcome text, option 2 (rich): mount a plain text file, printed
+      # verbatim at login (never executed). Multi-line is fine.
+      # - ./welcome.txt:/home/dev/.kapsuli-welcome:ro
+      # Repos, option 2 (manifest): mount a file for per-repo dir/branch.
+      # - ./repos.txt:/home/dev/.kapsuli-repos:ro
+      # AWS config, option 2 (mounted file): mount a prewritten, non-secret
+      # ~/.aws/config read-only. Takes precedence over the AWS_SSO_* env vars
+      # below; you then only run `aws sso login` — no `aws configure sso`.
+      # - ./aws-config:/home/dev/.aws/config:ro
+    environment:
+      KAPSULI_NAME: "example"
+      GIT_USER_NAME: "Ada Lovelace"
+      GIT_USER_EMAIL: "ada@example.com"
+      # Welcome text, option 1 (simple): a one-line banner shown at login.
+      KAPSULI_WELCOME: "Prod-adjacent env — do NOT run terraform apply here."
+      # Repos, option 1 (simple): space-separated owner/repo cloned into
+      # ~/workspace by `kapsuli-sync` (run it after `gh auth login`).
+      # KAPSULI_REPOS: "villekr/fenix-images villekr/kapsuli"
+      # AWS SSO, option 1 (simple): non-secret identifiers only. When set on a
+      # fresh volume (and no ~/.aws/config is mounted), the entrypoint seeds
+      # ~/.aws/config so you only run `aws sso login` — no `aws configure sso`.
+      # Placeholders; fill with your org's values.
+      # AWS_SSO_SESSION: "my-sso"
+      # AWS_SSO_START_URL: "https://my-org.awsapps.com/start"
+      # AWS_SSO_REGION: "eu-west-1"
+      # AWS_SSO_ACCOUNT_ID: "123456789012"
+      # AWS_SSO_ROLE_NAME: "DeveloperAccess"
+      # AWS_REGION: "eu-west-1"
+      # AWS_PROFILE: "default"
+      # AWS_DEFAULT_OUTPUT: "json"
+volumes:
+  example-home:

@@ -1,0 +1,234 @@
+name: build-images
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".github/dependabot.yml"
+  pull_request:
+    paths-ignore:
+      - "**.md"
+      - "docs/**"
+      - "LICENSE"
+      - ".github/dependabot.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: build-images-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate-config:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install mise
+        uses: jdx/mise-action@v2
+        with:
+          install: false
+
+      - name: Validate example mise.toml syntax
+        run: |
+          set -ex
+          cd example
+          mise trust mise.toml
+          mise config get --file mise.toml >/dev/null
+          mise ls --current >/dev/null
+
+  build:
+    needs: validate-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build base image
+        run: |
+          docker build \
+            --build-arg "IMAGE_VERSION=ci" \
+            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            -t fenix-base:ci .
+
+      - name: Verify base image contents + non-root
+        run: |
+          docker run --rm --entrypoint bash fenix-base:ci -lc '
+            set -ex
+            test "$(id -u)" -eq 1000
+            curl --version
+            git --version
+            gh --version
+            zsh --version
+            mise --version
+            test -d /opt/devbox-skel/.oh-my-zsh-custom/themes/powerlevel10k
+            test -d /opt/devbox-skel/.oh-my-zsh
+            test ! -d /usr/local/share/fonts/MesloLGS-NF
+            test -x /usr/local/bin/extra-tools.sh
+            test -x /usr/local/bin/kapsuli-sync
+            test -x /usr/local/bin/kapsuli-info
+            test -s /etc/kapsuli/info.json
+            grep -q "\"source_commit\"" /etc/kapsuli/info.json
+            test -n "$KAPSULI_INFO"
+          '
+
+      - name: Verify OCI provenance labels
+        run: |
+          set -ex
+          docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.revision" }}' fenix-base:ci | grep -qv '^$'
+          docker inspect -f '{{ index .Config.Labels "org.opencontainers.image.version" }}' fenix-base:ci | grep -q '^ci$'
+
+      - name: Verify entrypoint runs and reaches steady state
+        run: |
+          set -ex
+          docker run -d --name fenix-ep \
+            -e GIT_USER_NAME="CI" \
+            -e GIT_USER_EMAIL="ci@test" \
+            fenix-base:ci
+          sleep 5
+          test "$(docker inspect -f '{{.State.Running}}' fenix-ep)" = "true"
+          docker exec fenix-ep bash -lc '
+            set -ex
+            test -f "$HOME/.keyring-env"
+            test -f "$HOME/.zshrc"
+            test -d "$HOME/workspace"
+            test -d "$HOME/.oh-my-zsh"
+          '
+          for i in $(seq 1 20); do
+            h="$(docker inspect -f '{{.State.Health.Status}}' fenix-ep)"
+            test "$h" = "healthy" && break
+            sleep 2
+          done
+          test "$(docker inspect -f '{{.State.Health.Status}}' fenix-ep)" = "healthy"
+          docker rm -f fenix-ep
+
+      - name: Verify kapsuli-sync (clone, idempotent skip, graceful failure)
+        run: |
+          docker run --rm --entrypoint bash fenix-base:ci -lc '
+            set -ex
+            export KAPSULI_WORKSPACE="$HOME/ws" KAPSULI_REPOS_FILE="$HOME/none"
+
+            # Clone a small public repo.
+            KAPSULI_REPOS="octocat/Hello-World" kapsuli-sync
+            test -d "$HOME/ws/Hello-World/.git"
+
+            # Idempotent: second run skips the existing checkout.
+            out="$(KAPSULI_REPOS="octocat/Hello-World" kapsuli-sync)"
+            printf "%s\n" "$out" | grep -q "Hello-World: skipped"
+
+            # Malformed entry fails gracefully (non-zero, clear message).
+            if KAPSULI_REPOS="not-a-repo" kapsuli-sync; then exit 1; fi
+          '
+
+      - name: Verify AWS SSO config seeding (writes from env; no-op otherwise)
+        run: |
+          set -ex
+          docker run -d --name fenix-aws \
+            -e GIT_USER_NAME="CI" -e GIT_USER_EMAIL="ci@test" \
+            -e AWS_SSO_SESSION="ci-sso" \
+            -e AWS_SSO_START_URL="https://example.awsapps.com/start" \
+            -e AWS_SSO_REGION="eu-west-1" \
+            -e AWS_SSO_ACCOUNT_ID="123456789012" \
+            -e AWS_SSO_ROLE_NAME="CIRole" \
+            -e AWS_PROFILE="ci" \
+            fenix-base:ci
+          sleep 3
+          docker exec fenix-aws bash -lc '
+            set -ex
+            test -f "$HOME/.aws/config"
+            grep -q "\[sso-session ci-sso\]" "$HOME/.aws/config"
+            grep -q "sso_start_url = https://example.awsapps.com/start" "$HOME/.aws/config"
+            grep -q "\[profile ci\]" "$HOME/.aws/config"
+            grep -q "sso_account_id = 123456789012" "$HOME/.aws/config"
+          '
+          docker rm -f fenix-aws
+
+          docker run -d --name fenix-noaws \
+            -e GIT_USER_NAME="CI" -e GIT_USER_EMAIL="ci@test" \
+            fenix-base:ci
+          sleep 3
+          docker exec fenix-noaws bash -lc 'test ! -f "$HOME/.aws/config"'
+          docker rm -f fenix-noaws
+
+      - name: Verify mise trust and single-tool provisioning (both mechanisms)
+        run: |
+          set -ex
+          printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "kiro-cli"' > /tmp/ci-mise.toml
+          docker run -d --name fenix-prov \
+            -e GIT_USER_NAME="CI" \
+            -e GIT_USER_EMAIL="ci@test" \
+            -v "/tmp/ci-mise.toml:/home/dev/mise.toml:ro" \
+            fenix-base:ci
+          for i in $(seq 1 30); do
+            test "$(docker inspect -f '{{.State.Running}}' fenix-prov)" = "true" && break
+            sleep 1
+          done
+          test "$(docker inspect -f '{{.State.Running}}' fenix-prov)" = "true"
+          docker exec fenix-prov bash -lc '
+            set -ex
+            mise trust "$HOME/mise.toml"
+            eval "$(mise activate bash)"
+            mise ls --current >/dev/null
+            mise install --yes
+            uv --version
+          '
+          docker exec -e EXTRA_TOOLS="kiro-cli" fenix-prov bash -lc '
+            set -ex
+            extra-tools.sh
+            command -v kiro-cli
+            kiro-cli --version
+          '
+          docker rm -f fenix-prov
+
+      - name: Verify provisioning is non-fatal (bad tool must not crash the container)
+        run: |
+          set -ex
+          printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "definitely-not-a-tool"' > /tmp/ci-mise-bad.toml
+          docker run -d --name fenix-bad \
+            -e GIT_USER_NAME="CI" \
+            -e GIT_USER_EMAIL="ci@test" \
+            -v "/tmp/ci-mise-bad.toml:/home/dev/mise.toml:ro" \
+            fenix-base:ci
+          for i in $(seq 1 30); do
+            test "$(docker inspect -f '{{.State.Running}}' fenix-bad)" = "true" && break
+            sleep 1
+          done
+          test "$(docker inspect -f '{{.State.Running}}' fenix-bad)" = "true"
+          sleep 3
+          test "$(docker inspect -f '{{.State.Running}}' fenix-bad)" = "true"
+          docker exec fenix-bad bash -lc '
+            set -ex
+            test -f "$HOME/.provisioned/last-run.log"
+            test -f "$HOME/.provisioned/status"
+            grep -q "extra-tool: definitely-not-a-tool: unknown" "$HOME/.provisioned/last-run.log"
+            grep -q "extra-tools: summary" "$HOME/.provisioned/last-run.log"
+            grep -q "provision: summary" "$HOME/.provisioned/last-run.log"
+          '
+          docker rm -f fenix-bad
+
+      - name: Trivy scan (base)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: fenix-base:ci
+          format: sarif
+          output: trivy-base.sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF (base)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-base.sarif
+          category: trivy-base

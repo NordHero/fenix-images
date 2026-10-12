@@ -1,0 +1,49 @@
+# Local pre-commit checks — mirror the CI in .github/workflows/build-images.yml
+# so problems are caught before they are pushed. Install once:
+#
+#   pipx install pre-commit          # (or: brew install pre-commit)
+#   pre-commit install               # run on every commit
+#   pre-commit run --all-files       # one-off full sweep
+#
+# Revs are pinned; bump deliberately with `pre-commit autoupdate`.
+minimum_pre_commit_version: "3.2.0"
+
+repos:
+  # Secret scanning — the MIT gitleaks CLI via its official hook.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
+
+  # Shell linting.
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [-x, -S, warning]
+
+  # Shell formatting (2-space indent, indented case arms, binary ops may start
+  # a line). -d = diff & fail.
+  - repo: https://github.com/MaxWinterstein/shfmt-py
+    rev: v4.2.0
+    hooks:
+      - id: shfmt
+        args: [-d, -i, "2", -ci, -bn]
+
+  # Dockerfile linting.
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      - id: hadolint-docker
+
+  # General hygiene.
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-shebang-scripts-are-executable
+      - id: check-executables-have-shebangs
+      - id: check-yaml
