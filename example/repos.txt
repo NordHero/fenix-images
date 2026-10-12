@@ -3,5 +3,5 @@
 # - dir defaults to the repo name; branch defaults to the remote default.
 # Lines starting with # and blank lines are ignored.
 #
-# https://github.com/villekr/fenix-images.git   images   main
+# https://github.com/NordHero/fenix-images.git   images   main
 # https://github.com/villekr/kapsuli.git        kapsuli  main

@@ -77,7 +77,7 @@ LABEL org.opencontainers.image.title="fenix-base" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
       org.opencontainers.image.revision="${SOURCE_COMMIT}" \
       org.opencontainers.image.created="${BUILD_DATE}" \
-      org.opencontainers.image.source="https://github.com/villekr/fenix-images" \
+      org.opencontainers.image.source="https://github.com/NordHero/fenix-images" \
       org.opencontainers.image.base.name="ubuntu:24.04"
 
 ENV KAPSULI_INFO="fenix-base ${IMAGE_VERSION} (${SOURCE_COMMIT}, built ${BUILD_DATE})"

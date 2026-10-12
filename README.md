@@ -6,7 +6,7 @@ You don't build a custom image per project — you declare the tools you want in
 `mise.toml`, and they are installed into the capsule's home volume on first
 start.
 
-This is **Layer 3** of [fenix](https://github.com/villekr/fenix): the
+This is **Layer 3** of [fenix](https://github.com/NordHero/fenix): the
 development model that fenix (host Layers 0–2) explicitly leaves out of scope.
 It is self-contained — usable with nothing but `docker compose`.
 
@@ -41,7 +41,7 @@ in your terminal — the image ships no fonts.
 ### 1. Clone and build the base image
 
 ```bash
-git clone https://github.com/villekr/fenix-images.git
+git clone https://github.com/NordHero/fenix-images.git
 cd fenix-images
 ./build-images.sh             # builds fenix-base:local
 ```

@@ -16,7 +16,7 @@ doc; everything else is written for humans.
 
 **fenix-images** builds a single, minimal non-root development base image with
 [mise](https://mise.jdx.dev) baked in, and ships a sample capsule. It is
-**Layer 3** of [fenix](https://github.com/villekr/fenix) — the development
+**Layer 3** of [fenix](https://github.com/NordHero/fenix) — the development
 model fenix (host Layers 0–2) leaves out of scope. It is self-contained: usable
 with nothing but `docker compose`.
 

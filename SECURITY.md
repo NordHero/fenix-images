@@ -27,7 +27,7 @@ installer verifies its own checksums but is not verified by mise or this repo.
 Treat it as you would any `curl | bash` vendor installer; prefer a `[tools]`
 backend whenever one exists. Most cloud CLIs (azure-cli, GitHub Copilot CLI,
 gcloud) now install through mise backends and gain mise's verification. See
-[issue #51](https://github.com/villekr/fenix-images/issues/51).
+[issue #51](https://github.com/NordHero/fenix-images/issues/51).
 
 ## Scanning
 
