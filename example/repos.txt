@@ -1,4 +1,4 @@
-# Optional repo manifest for kapsuli-sync. Mount at /home/dev/.kapsuli-repos.
+# Optional repo manifest for capsule-sync. Mount at /home/dev/.capsule-repos.
 # One repo per line:  <url>  [dir]  [branch]
 # - dir defaults to the repo name; branch defaults to the remote default.
 # Lines starting with # and blank lines are ignored.

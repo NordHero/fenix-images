@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -uo pipefail
 
-WORKSPACE="${KAPSULI_WORKSPACE:-$HOME/workspace}"
-MANIFEST="${KAPSULI_REPOS_FILE:-$HOME/.kapsuli-repos}"
+WORKSPACE="${CAPSULE_WORKSPACE:-$HOME/workspace}"
+MANIFEST="${CAPSULE_REPOS_FILE:-$HOME/.capsule-repos}"
 
 mkdir -p "$WORKSPACE"
 
@@ -34,7 +34,7 @@ clone_one() {
   fi
 }
 
-for entry in ${KAPSULI_REPOS:-}; do
+for entry in ${CAPSULE_REPOS:-}; do
   case "$entry" in
     */*)
       clone_one "https://github.com/${entry}.git" "${entry##*/}" ""
@@ -64,11 +64,11 @@ if [ -f "$MANIFEST" ]; then
 fi
 
 if [ "$((cloned + skipped + failed))" -eq 0 ]; then
-  log "no repos declared (set KAPSULI_REPOS or mount ~/.kapsuli-repos)"
+  log "no repos declared (set CAPSULE_REPOS or mount ~/.capsule-repos)"
   exit 0
 fi
 
-printf 'kapsuli-sync: summary cloned=%s skipped=%s failed=%s%s\n' \
+printf 'capsule-sync: summary cloned=%s skipped=%s failed=%s%s\n' \
   "$cloned" "$skipped" "$failed" "${failed_list:+ (failed: $failed_list)}"
 
 [ "$failed" -gt 0 ] && exit 1

@@ -15,49 +15,49 @@ if [[ $- == *i* ]] && command -v gh >/dev/null 2>&1; then
     echo "GitHub not authenticated. Run: gh auth login"
 fi
 
-KAPSULI_LABEL="${KAPSULI_NAME:-$HOST}"
+CAPSULE_LABEL="${CAPSULE_NAME:-$HOST}"
 
 DISABLE_AUTO_TITLE=true
 
-_kapsuli_set_title() {
+_capsule_set_title() {
   local cwd="${PWD/#$HOME/~}"
-  printf '\033]2;[kapsuli:%s] %s\007' "${KAPSULI_LABEL}" "${cwd}"
-  printf '\033]1;[kapsuli:%s] %s\007' "${KAPSULI_LABEL}" "${cwd}"
+  printf '\033]2;[capsule:%s] %s\007' "${CAPSULE_LABEL}" "${cwd}"
+  printf '\033]1;[capsule:%s] %s\007' "${CAPSULE_LABEL}" "${cwd}"
 }
 
-_kapsuli_clear_title() {
+_capsule_clear_title() {
   printf '\033]2;\007'
   printf '\033]1;\007'
 }
 
-_kapsuli_profile_enabled() {
-  [[ "${KAPSULI_ITERM_PROFILE_SWITCH:-1}" != "0" ]]
+_capsule_profile_enabled() {
+  [[ "${CAPSULE_ITERM_PROFILE_SWITCH:-1}" != "0" ]]
 }
 
 if [[ -o interactive ]]; then
-  if _kapsuli_profile_enabled; then
+  if _capsule_profile_enabled; then
     printf '\033]1337;SetProfile=%s\007' "${ITERM_DEVCONTAINER_PROFILE:-fenix-devcontainer}"
   fi
 
   autoload -Uz add-zsh-hook
-  add-zsh-hook precmd _kapsuli_set_title
-  add-zsh-hook chpwd _kapsuli_set_title
-  _kapsuli_set_title
+  add-zsh-hook precmd _capsule_set_title
+  add-zsh-hook chpwd _capsule_set_title
+  _capsule_set_title
 
-  print -P "%F{cyan}kapsuli%f: %F{green}${KAPSULI_LABEL}%f"
-  [[ -n "${KAPSULI_INFO:-}" ]] && print -P "%F{8}${KAPSULI_INFO}%f"
+  print -P "%F{cyan}capsule%f: %F{green}${CAPSULE_LABEL}%f"
+  [[ -n "${CAPSULE_INFO:-}" ]] && print -P "%F{8}${CAPSULE_INFO}%f"
 
-  if [[ -f "$HOME/.kapsuli-welcome" ]]; then
-    cat -- "$HOME/.kapsuli-welcome"
-  elif [[ -n "${KAPSULI_WELCOME:-}" ]]; then
-    print -r -- "${KAPSULI_WELCOME}"
+  if [[ -f "$HOME/.capsule-welcome" ]]; then
+    cat -- "$HOME/.capsule-welcome"
+  elif [[ -n "${CAPSULE_WELCOME:-}" ]]; then
+    print -r -- "${CAPSULE_WELCOME}"
   fi
 
-  _kapsuli_on_exit() {
-    _kapsuli_clear_title
-    if _kapsuli_profile_enabled; then
+  _capsule_on_exit() {
+    _capsule_clear_title
+    if _capsule_profile_enabled; then
       printf '\033]1337;SetProfile=%s\007' "${ITERM_DEFAULT_PROFILE:-fenix}"
     fi
   }
-  add-zsh-hook zshexit _kapsuli_on_exit
+  add-zsh-hook zshexit _capsule_on_exit
 fi

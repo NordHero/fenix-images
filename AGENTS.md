@@ -21,29 +21,29 @@ model fenix (host Layers 0–2) leaves out of scope. It is self-contained: usabl
 with nothing but `docker compose`.
 
 Tools are **not** baked per image; they are declared in a `mise.toml` and
-installed into the home volume on first boot. A **kapsuli** is a folder with
-`compose.yaml` + `mise.toml` defining one encapsulated runtime; **kapsulis** is
+installed into the home volume on first boot. A **capsule** is a folder with
+`compose.yaml` + `mise.toml` defining one encapsulated runtime; **capsules** is
 the plural.
 
 The documented flow is self-contained and build-it-yourself: users clone this
 repo, build the base image locally (`./build-images.sh` -> `fenix-base:local`),
-and reference that local image from their kapsulis. The repo is private and
+and reference that local image from their capsules. The repo is private and
 publishes no image; the documented flow is build-it-yourself.
 
 ## Where things live
 
 - `Dockerfile` — the base image (OS + eye-candy + mise). Root context.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
-  xclip shim, `kapsuli-info`, `kapsuli-sync`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
-  `BUILD_DATE` build-args) is written to `/etc/kapsuli/info.json`, the
-  `KAPSULI_INFO` env, and OCI image labels. `kapsuli-sync` clones repos declared
-  in `KAPSULI_REPOS` / `~/.kapsuli-repos` idempotently via the gh credential helper.
+  xclip shim, `capsule-info`, `capsule-sync`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
+  `BUILD_DATE` build-args) is written to `/etc/capsule/info.json`, the
+  `CAPSULE_INFO` env, and OCI image labels. `capsule-sync` clones repos declared
+  in `CAPSULE_REPOS` / `~/.capsule-repos` idempotently via the gh credential helper.
 - `extra-tools.sh` — installs tools with no mise backend (currently only
   `kiro-cli`); reads `EXTRA_TOOLS` from the mounted `mise.toml`. Cloud CLIs
   (azure-cli, copilot, gcloud) are declared in `[tools]` via mise backends.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
-- `example/` — the shipped example kapsuli (`compose.yaml` + `mise.toml`). It
+- `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It
   is the canonical default: the reference used while developing the image and
   the target of CI's config validation. `example/mise.toml` is the extensive
   default tool list; keep it authoritative. The kapsuli CLI does not couple to
@@ -55,7 +55,7 @@ publishes no image; the documented flow is build-it-yourself.
   `release-please.yml` (version PRs + tags/CHANGELOG),
   `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish).
 
-There is no root `compose.yaml` or root `mise.toml`; the example kapsuli is the
+There is no root `compose.yaml` or root `mise.toml`; the example capsule is the
 single reference.
 
 ## Trust
@@ -88,6 +88,6 @@ otherwise in docs. See `SECURITY.md` and issue #51.
   Dockerfile.
 - Let CI build the image and assert the entrypoint plus one `[tools]` and one
   `EXTRA_TOOLS` package provision and resolve.
-- No stale `kapsuli-base` or root-`compose.yaml`/`mise.toml` references after
+- No stale legacy naming or root-`compose.yaml`/`mise.toml` references after
   structural changes.
 - Changes land via branches/PRs; releases are automated from `main`.

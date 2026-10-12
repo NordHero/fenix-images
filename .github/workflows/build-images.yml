@@ -75,11 +75,11 @@ jobs:
             test -d /opt/devbox-skel/.oh-my-zsh
             test ! -d /usr/local/share/fonts/MesloLGS-NF
             test -x /usr/local/bin/extra-tools.sh
-            test -x /usr/local/bin/kapsuli-sync
-            test -x /usr/local/bin/kapsuli-info
-            test -s /etc/kapsuli/info.json
-            grep -q "\"source_commit\"" /etc/kapsuli/info.json
-            test -n "$KAPSULI_INFO"
+            test -x /usr/local/bin/capsule-sync
+            test -x /usr/local/bin/capsule-info
+            test -s /etc/capsule/info.json
+            grep -q "\"source_commit\"" /etc/capsule/info.json
+            test -n "$CAPSULE_INFO"
           '
 
       - name: Verify OCI provenance labels
@@ -112,22 +112,22 @@ jobs:
           test "$(docker inspect -f '{{.State.Health.Status}}' fenix-ep)" = "healthy"
           docker rm -f fenix-ep
 
-      - name: Verify kapsuli-sync (clone, idempotent skip, graceful failure)
+      - name: Verify capsule-sync (clone, idempotent skip, graceful failure)
         run: |
           docker run --rm --entrypoint bash fenix-base:ci -lc '
             set -ex
-            export KAPSULI_WORKSPACE="$HOME/ws" KAPSULI_REPOS_FILE="$HOME/none"
+            export CAPSULE_WORKSPACE="$HOME/ws" CAPSULE_REPOS_FILE="$HOME/none"
 
             # Clone a small public repo.
-            KAPSULI_REPOS="octocat/Hello-World" kapsuli-sync
+            CAPSULE_REPOS="octocat/Hello-World" capsule-sync
             test -d "$HOME/ws/Hello-World/.git"
 
             # Idempotent: second run skips the existing checkout.
-            out="$(KAPSULI_REPOS="octocat/Hello-World" kapsuli-sync)"
+            out="$(CAPSULE_REPOS="octocat/Hello-World" capsule-sync)"
             printf "%s\n" "$out" | grep -q "Hello-World: skipped"
 
             # Malformed entry fails gracefully (non-zero, clear message).
-            if KAPSULI_REPOS="not-a-repo" kapsuli-sync; then exit 1; fi
+            if CAPSULE_REPOS="not-a-repo" capsule-sync; then exit 1; fi
           '
 
       - name: Verify AWS SSO config seeding (writes from env; no-op otherwise)

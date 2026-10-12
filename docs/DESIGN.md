@@ -22,32 +22,32 @@ The image records what it is and when it was built, injected as build-args
 (`IMAGE_VERSION`, `SOURCE_COMMIT`, `BUILD_DATE`; `dev`/`unknown` for local
 builds, real values injected by CI):
 
-- **`/etc/kapsuli/info.json`** — the structured source of truth (version,
+- **`/etc/capsule/info.json`** — the structured source of truth (version,
   commit, build date, base OS).
-- **`KAPSULI_INFO`** env — a one-line human summary, shown on the login banner.
+- **`CAPSULE_INFO`** env — a one-line human summary, shown on the login banner.
 - **OCI image labels** (`org.opencontainers.image.version`/`.revision`/
   `.created`/`.source`) — inspectable from the host with `docker inspect`,
   no exec needed.
 
-Run `kapsuli-info` inside a capsule to print the summary and the JSON.
+Run `capsule-info` inside a capsule to print the summary and the JSON.
 
 ## Repositories
 
 A capsule can declare the git repos it works on and clone them with
-`kapsuli-sync`:
+`capsule-sync`:
 
-- **`KAPSULI_REPOS`** in `compose.yaml` — space-separated `owner/repo`, cloned
+- **`CAPSULE_REPOS`** in `compose.yaml` — space-separated `owner/repo`, cloned
   into `~/workspace/<repo>`.
-- **`~/.kapsuli-repos`** manifest (optional, mounted) — one `url [dir] [branch]`
+- **`~/.capsule-repos`** manifest (optional, mounted) — one `url [dir] [branch]`
   per line for explicit target dir / branch.
 
-`kapsuli-sync` clones over HTTPS using the `gh` credential helper, is
+`capsule-sync` clones over HTTPS using the `gh` credential helper, is
 **idempotent** (an existing target dir is skipped, never pulled or reset), and
 prints a per-repo `cloned|skipped|failed` line plus a summary. Because GitHub
 auth happens interactively after first boot, the flow is `gh auth login` then
-`kapsuli-sync`. The entrypoint attempts it once on first boot (non-blocking):
+`capsule-sync`. The entrypoint attempts it once on first boot (non-blocking):
 public repos clone, anything needing auth is reported and left for the manual
-`kapsuli-sync` after login. It never blocks or fails container start.
+`capsule-sync` after login. It never blocks or fails container start.
 
 ## Health
 
@@ -80,22 +80,22 @@ reported instead of hidden. Re-run it any time with `provision.sh`.
 The zsh prompt uses the same Powerlevel10k rainbow style as the fenix host, so
 switching into a capsule reads as a color/theme change rather than a different
 layout. Terminal window and tab titles are prefixed with the capsule name and
-current directory, e.g. `[kapsuli:example] ~/workspace` (updates on `cd`). Set
-`KAPSULI_NAME` in the capsule's `compose.yaml` to control the label; it falls
+current directory, e.g. `[capsule:example] ~/workspace` (updates on `cd`). Set
+`CAPSULE_NAME` in the capsule's `compose.yaml` to control the label; it falls
 back to the container hostname when unset. On exit the title is cleared.
 
 On an interactive shell the image switches to the devcontainer iTerm2 profile
 via an OSC 1337 escape and restores the default on exit. The profile names are
 the contract with the host (fenix): `ITERM_DEVCONTAINER_PROFILE` (default
 `fenix-devcontainer`) and `ITERM_DEFAULT_PROFILE` (default `fenix`). Set
-`KAPSULI_ITERM_PROFILE_SWITCH=0` to opt out. Other terminals ignore the escape.
+`CAPSULE_ITERM_PROFILE_SWITCH=0` to opt out. Other terminals ignore the escape.
 
 ## Welcome text
 
 Show a message at login, two ways:
 
-- **Simple:** `KAPSULI_WELCOME` in `compose.yaml` — a one-line banner.
-- **Rich:** mount a plain text file at `/home/dev/.kapsuli-welcome` (printed
+- **Simple:** `CAPSULE_WELCOME` in `compose.yaml` — a one-line banner.
+- **Rich:** mount a plain text file at `/home/dev/.capsule-welcome` (printed
   verbatim, never executed); multi-line is fine.
 
 ## Credentials and the keyring
@@ -116,7 +116,7 @@ come from `aws sso login` into the home volume, never from the repo or image.
   mirroring how it handles `GIT_USER_*`. A fresh volume then needs only
   `aws sso login`; no `aws configure sso`. The logic is generic and a no-op when
   the vars are unset or a config already exists; only non-secret identifiers
-  come from the kapsuli.
+  come from the capsule.
 - **Mounted file.** Mount a prewritten `~/.aws/config` read-only at
   `/home/dev/.aws/config`. Because the env seeding is guarded by
   `[ ! -f ~/.aws/config ]`, a mounted config takes precedence and the env path

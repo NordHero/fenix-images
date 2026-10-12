@@ -60,8 +60,8 @@ if [ -f "$HOME/mise.toml" ] && [ -x /usr/local/bin/provision.sh ]; then
   /usr/local/bin/provision.sh || echo "provision: incomplete; run 'provision.sh' to retry (see ~/.provisioned/last-run.log)" >&2
 fi
 
-if [ -x /usr/local/bin/kapsuli-sync ] && { [ -n "${KAPSULI_REPOS:-}" ] || [ -f "$HOME/.kapsuli-repos" ]; }; then
-  /usr/local/bin/kapsuli-sync || echo "kapsuli-sync: some repos pending — run 'kapsuli-sync' after 'gh auth login'" >&2
+if [ -x /usr/local/bin/capsule-sync ] && { [ -n "${CAPSULE_REPOS:-}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
+  /usr/local/bin/capsule-sync || echo "capsule-sync: some repos pending — run 'capsule-sync' after 'gh auth login'" >&2
 fi
 
 exec sleep infinity
