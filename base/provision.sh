@@ -20,8 +20,18 @@ mise_ok=skipped
 extra_ok=skipped
 rc=0
 
-if [ -f "$HOME/mise.toml" ]; then
+mise_trusted() {
+  (cd "$HOME" && mise trust --show 2>/dev/null) | grep -q '^~: trusted$'
+}
+
+if [ -f "$HOME/mise.toml" ] && [ "${CAPSULE_TRUST_MISE:-0}" = "1" ]; then
   mise trust "$HOME/mise.toml" >/dev/null 2>&1 || true
+fi
+
+if [ -f "$HOME/mise.toml" ] && ! mise_trusted; then
+  mise_ok=untrusted
+  marker "mise: untrusted; review ~/mise.toml, then run 'mise trust ~/mise.toml && provision.sh' (or set CAPSULE_TRUST_MISE=1)"
+elif [ -f "$HOME/mise.toml" ]; then
   eval "$(mise activate bash 2>/dev/null)" || true
   log "mise install"
   if (cd "$HOME" && mise install --yes) >>"$REPORT" 2>&1; then

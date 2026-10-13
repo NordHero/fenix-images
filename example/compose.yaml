@@ -27,6 +27,10 @@ services:
     #   - keyring_password
     environment:
       CAPSULE_NAME: "example"
+      # Trust the mounted mise.toml and provision on start. A mise.toml runs
+      # code ([env], hooks), so set this only for one you have reviewed.
+      # Without it, run `mise trust ~/mise.toml && provision.sh` once.
+      CAPSULE_TRUST_MISE: "1"
       GIT_USER_NAME: "Ada Lovelace"
       GIT_USER_EMAIL: "ada@example.com"
       # Welcome text, option 1 (simple): a one-line banner shown at login.

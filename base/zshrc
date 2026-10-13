@@ -20,6 +20,10 @@ if [[ $- == *i* ]] && command -v gh >/dev/null 2>&1; then
     echo "GitHub not authenticated. Run: gh auth login"
 fi
 
+if [[ $- == *i* ]] && grep -qs 'mise=untrusted' "$HOME/.provisioned/status"; then
+  echo "mise.toml not trusted; tools not installed. Review ~/mise.toml, then run: mise trust ~/mise.toml && provision.sh"
+fi
+
 CAPSULE_LABEL="${CAPSULE_NAME:-$HOST}"
 
 DISABLE_AUTO_TITLE=true
