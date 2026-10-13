@@ -56,7 +56,8 @@ and reference that local image from their capsules. No image is published.
   the always-run `ci-ok` gate required on `main`),
   `release-please.yml` (version PRs + tags/CHANGELOG; dispatches CI on the
   release branch),
-  `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish).
+  `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish),
+  `close-external-prs.yml` (closes fork PRs from non-members).
 
 There is no root `compose.yaml` or root `mise.toml`; the example capsule is the
 single reference.

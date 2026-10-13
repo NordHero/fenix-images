@@ -1,5 +1,10 @@
 # Contributing
 
+External contributions are not accepted. Pull requests from forks by anyone
+who is not an owner, member or collaborator are closed automatically
+(`.github/workflows/close-external-prs.yml`). Report security issues privately
+via **Security > Report a vulnerability** (see [`SECURITY.md`](SECURITY.md)).
+
 Conventions for agents and automation live in [`AGENTS.md`](AGENTS.md); this
 guide covers the local setup and quality gates for human contributors.
 
