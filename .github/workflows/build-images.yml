@@ -223,6 +223,7 @@ jobs:
           format: sarif
           output: trivy-base.sarif
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           ignore-unfixed: true
 
       - name: Upload Trivy SARIF (base)
