@@ -17,7 +17,7 @@ RUN apt-get update && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
       ca-certificates curl gnupg git zsh locales \
       openssh-client \
-      unzip \
+      unzip tini \
       vim nano less \
       dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools \
     && locale-gen en_US.UTF-8 \
@@ -92,4 +92,4 @@ RUN mkdir -p ${DEV_HOME}/workspace
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD sh -c 'f="$HOME/.provisioned/status"; [ ! -f "$f" ] || grep -q "rc=0" "$f"'
 
-ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]

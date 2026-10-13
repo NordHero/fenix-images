@@ -8,8 +8,9 @@ see [`README.md`](../README.md); for declaring tools see [`TOOLS.md`](TOOLS.md).
 `ubuntu:24.04`, non-root `dev` user (UID/GID 1000). It carries zsh +
 Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
 network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
-shim, editors + pager (`vim`, `nano`, `less`), and **mise** (pinned,
-checksum-verified). No language runtimes or cloud tools are baked in.
+shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
+processes, forwards signals), and **mise** (pinned, checksum-verified). No
+language runtimes or cloud tools are baked in.
 
 **Fonts are a host responsibility.** The image renders no glyphs; the terminal
 emulator on the host does. Install a Nerd Font (e.g. MesloLGS NF) on the host

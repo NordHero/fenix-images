@@ -26,10 +26,10 @@ jobs:
   validate-config:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Install mise
-        uses: jdx/mise-action@v4
+        uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:
           install: false
 
@@ -48,10 +48,10 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Build base image
         run: |
@@ -103,6 +103,8 @@ jobs:
             test -f "$HOME/.zshrc"
             test -d "$HOME/workspace"
             test -d "$HOME/.oh-my-zsh"
+            test "$(cat /proc/1/comm)" = "tini"
+            test -z "$(grep -l "^State:.*Z" /proc/[0-9]*/status 2>/dev/null)"
           '
           for i in $(seq 1 20); do
             h="$(docker inspect -f '{{.State.Health.Status}}' fenix-ep)"
@@ -217,18 +219,19 @@ jobs:
           docker rm -f fenix-bad
 
       - name: Trivy scan (base)
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           image-ref: fenix-base:ci
           format: sarif
           output: trivy-base.sarif
           severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
           ignore-unfixed: true
 
       - name: Upload Trivy SARIF (base)
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         continue-on-error: true
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
         with:
           sarif_file: trivy-base.sarif
           category: trivy-base
