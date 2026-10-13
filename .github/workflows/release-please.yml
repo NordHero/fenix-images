@@ -24,4 +24,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BRANCH: ${{ fromJSON(steps.release.outputs.pr).headBranchName }}
-        run: gh workflow run build-images.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+        run: |
+          if gh api "repos/$GITHUB_REPOSITORY/branches/$BRANCH" --silent 2>/dev/null; then
+            gh workflow run build-images.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
+          else
+            echo "release branch $BRANCH no longer exists; nothing to dispatch"
+          fi
