@@ -44,6 +44,9 @@ cd fenix-images
 ./build-images.sh             # builds fenix-base:local
 ```
 
+`build-images.sh` needs bash; on Windows run it from WSL or Git Bash, or run
+`docker build -t fenix-base:local .` directly.
+
 That local image is all your definitions reference — nothing is pulled from a
 registry.
 
