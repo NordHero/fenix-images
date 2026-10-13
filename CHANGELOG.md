@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.0.0](https://github.com/NordHero/fenix-images/compare/v1.4.0...v2.0.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* rename KAPSULI_* to CAPSULE_* and kapsuli-* to capsule-* ([#3](https://github.com/NordHero/fenix-images/issues/3))
+
+### Features
+
+* rename KAPSULI_* to CAPSULE_* and kapsuli-* to capsule-* ([#3](https://github.com/NordHero/fenix-images/issues/3)) ([cc5ca41](https://github.com/NordHero/fenix-images/commit/cc5ca41a9f758b688c7f990b757309a2cfdd8961))
+
+
+### Bug Fixes
+
+* security quick wins (pinned actions, SARIF threshold, LF endings, tini) ([#6](https://github.com/NordHero/fenix-images/issues/6)) ([8697b4a](https://github.com/NordHero/fenix-images/commit/8697b4a623c27931726201eb82fb3af00a0a2e82))
+
 ## 1.4.0 (2026-10-10)
 
 
