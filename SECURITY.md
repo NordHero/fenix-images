@@ -9,6 +9,26 @@ capsule (`gh auth login`, `gcloud auth login`, `aws configure`, `az login`).
 Credentials live in the capsule's home volume (`/home/dev`), never in the image
 or this repository.
 
+## Stored credentials
+
+`gh` keeps its token in the gnome-keyring vault in the home volume,
+encrypted with a password the user sets on the first shell (see
+[`docs/DESIGN.md`](docs/DESIGN.md#credentials-and-the-keyring)).
+
+- **Protected:** copies of the volume (exports, backups, the Docker Desktop
+  disk image) and a stopped container. The keyring file is unreadable without
+  the password.
+- **Not protected:** any process running as `dev` in an unlocked capsule can
+  read the keyring through the Secret Service API. Host disk encryption, not
+  the keyring, protects the volume while the host is running.
+- **Password file:** `/run/secrets/keyring_password` unlocks without a prompt,
+  but stores the password on the host; anyone with that file and a copy of the
+  volume can read the tokens.
+- **Plaintext fallback blocked:** `gh auth login`/`refresh` is refused while the
+  keyring is locked, unless `--insecure-storage` is passed.
+- Other CLIs (`gcloud`, `aws`, `az`) store credentials as files in the home
+  volume, protected only by host disk encryption.
+
 ## Trust model
 
 mise and its tool backends are the trust point for everything declared in a

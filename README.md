@@ -62,10 +62,13 @@ docker compose exec dev zsh   # work inside the capsule
 docker compose down           # stop; the volume (your environment) is preserved
 ```
 
-Open more shells in the same running capsule with another
-`docker compose exec dev zsh`. Inside, authenticate the CLIs you use
-(`gh auth login`, `gcloud auth login`, `aws configure`, `az login`) — tokens
-persist in the home volume, never in the image or repo.
+The first shell after each start asks for the keyring password (on a fresh
+volume you set it), which encrypts stored tokens such as `gh`'s. Open more
+shells in the same running capsule with another `docker compose exec dev zsh`.
+Inside, authenticate the CLIs you use (`gh auth login`, `gcloud auth login`,
+`aws configure`, `az login`) — tokens persist in the home volume, never in the
+image or repo. See [Keyring password](docs/DESIGN.md#credentials-and-the-keyring)
+for unattended unlock and volumes from older images.
 
 For AWS, configure the CLI two ways (both non-secret; tokens still come from
 `aws sso login` into the home volume):

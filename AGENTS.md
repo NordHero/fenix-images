@@ -34,6 +34,7 @@ and reference that local image from their capsules. No image is published.
 
 - `Dockerfile` — the base image (OS + eye-candy + mise). Root context.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
+  `gh` wrapper, `capsule-unlock`,
   xclip shim, `capsule-info`, `capsule-sync`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
   `BUILD_DATE` build-args) is written to `/etc/capsule/info.json`, the
   `CAPSULE_INFO` env, and OCI image labels. `capsule-sync` clones repos declared
