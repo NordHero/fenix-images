@@ -156,7 +156,8 @@ come from `aws sso login` into the home volume, never from the repo or image.
   oh-my-zsh and powerlevel10k (commit SHAs), and the `gh` apt key
   fingerprints. Ubuntu packages and `gh` come from signed apt repos at build
   time. Rebuild with `./build-images.sh` to pick up changes.
-- **`mise.toml`** pins each tool version; `mise.lock` (mounted beside it)
+- **`mise.toml`** pins each tool version; `mise.lock` and `.mise/locks/`
+  (mounted beside it)
   pins checksums where the backend provides them (see [`TOOLS.md`](TOOLS.md)).
 
 Upgrade deliberately by rebuilding the base image and/or bumping versions.

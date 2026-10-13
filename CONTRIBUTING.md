@@ -25,7 +25,8 @@ pre-commit run --all-files         # one-off full sweep
 **CI** (`.github/workflows/build-images.yml`):
 
 - `validate-config`: example `mise.toml` parses, has no `"latest"`, and
-  `example/mise.lock` is current (`mise lock` produces no diff).
+  `example/mise.lock` and `example/.mise/locks/` are current (`mise lock`
+  produces no diff).
 - `build`: builds the image; asserts contents, the entrypoint, the keyring
   password flows, `capsule-sync`, AWS seeding, provisioning of one `[tools]`
   and one `EXTRA_TOOLS` package; Trivy scan (HIGH/CRITICAL).

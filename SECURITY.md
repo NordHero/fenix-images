@@ -51,11 +51,12 @@ without a prompt. Only mount a `mise.toml` you would run as a script.
 mise and its backends are the trust point for `[tools]`:
 
 - mise itself is installed at a pinned version, SHA-256-verified at build time.
-- `example/mise.toml` pins every version and `example/mise.lock` records
-  checksums for registry and `aqua:` tools; mise rejects a download that does
-  not match. `go:` modules are verified by the Go checksum database. `awscli`,
-  `gcloud`, `pypi:` and `ubi:` entries are pinned by version only. CI fails
-  when the lock is out of date.
+- `example/mise.toml` pins every version. `example/mise.lock` records
+  checksums for registry and `aqua:` tools, and `example/.mise/locks/` holds a
+  hash-locked uv lockfile per `pypi:` tool (the package and all its
+  dependencies); mise rejects a download that does not match. `go:` modules
+  are verified by the Go checksum database. `awscli`, `gcloud` and `ubi:`
+  entries are pinned by version only. CI fails when the lock is out of date.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
 installed by the vendor's own script. Currently this is only `kiro-cli`, whose

@@ -6,6 +6,7 @@ services:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
       - ./mise.lock:/home/dev/mise.lock:ro
+      - ./.mise/locks:/home/dev/.mise/locks:ro
       # Welcome text, option 2 (rich): mount a plain text file, printed
       # verbatim at login (never executed). Multi-line is fine.
       # - ./welcome.txt:/home/dev/.capsule-welcome:ro

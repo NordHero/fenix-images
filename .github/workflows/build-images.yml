@@ -87,7 +87,8 @@ jobs:
           set -ex
           cd example
           mise lock
-          git diff --exit-code mise.lock
+          git diff --exit-code mise.lock .mise/locks
+          test -z "$(git status --porcelain .mise/locks)"
 
   build:
     needs: validate-config

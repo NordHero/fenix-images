@@ -45,7 +45,7 @@ and reference that local image from their capsules. No image is published.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
 - `example/` — the shipped example capsule (`compose.yaml` + `mise.toml` +
-  `mise.lock`). It
+  `mise.lock` + `.mise/locks/`). It
   is the canonical default: the reference used while developing the image and
   the target of CI's config validation. `example/mise.toml` is the extensive
   default tool list; keep it authoritative.
@@ -76,7 +76,7 @@ otherwise in docs. See `SECURITY.md`.
 
 - Non-root `dev` user (UID/GID 1000); home at `/home/dev`.
 - After changing `example/mise.toml`, run `mise lock` in `example/` and commit
-  `mise.lock`; CI fails on drift. Never use `"latest"`.
+  `mise.lock` and `.mise/locks/`; CI fails on drift. Never use `"latest"`.
 - Tool versions are pinned in `mise.toml`; `extra-tools.sh` supports
   `tool@version` where the installer allows it.
 - Prefer a `[tools]` backend (`pypi:`, `aqua:`, `go:`, `ubi:`, `vfox:`, ...)
