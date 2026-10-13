@@ -12,9 +12,10 @@ export GNOME_KEYRING_CONTROL='${GNOME_KEYRING_CONTROL:-}'
 export SSH_AUTH_SOCK='${SSH_AUTH_SOCK:-}'
 EOF
 
-git config --global --add safe.directory "*" || true
+git config --global --replace-all safe.directory "*" || true
 git config --global protocol.ssh.allow never || true
-git config --global credential.https://github.com.helper '' || true
+git config --global --unset-all credential.https://github.com.helper || true
+git config --global --add credential.https://github.com.helper '' || true
 git config --global --add credential.https://github.com.helper '!gh auth git-credential' || true
 
 if [ -d /opt/devbox-skel ]; then
