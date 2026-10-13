@@ -155,6 +155,7 @@ jobs:
             test -d "$HOME/workspace"
             test -d "$HOME/.oh-my-zsh"
             test "$(cat /proc/1/comm)" = "tini"
+            test -z "$(git config --global --get-all safe.directory)"
             test -z "$(grep -l "^State:.*Z" /proc/[0-9]*/status 2>/dev/null)"
           '
           for i in $(seq 1 20); do
@@ -226,6 +227,15 @@ jobs:
 
             # Malformed entry fails gracefully (non-zero, clear message).
             if CAPSULE_REPOS="not-a-repo" capsule-sync; then exit 1; fi
+
+            # Manifest: non-https URLs are refused; words are not glob-expanded.
+            printf "file:///etc local\n" >"$HOME/manifest"
+            out="$(CAPSULE_REPOS_FILE="$HOME/manifest" capsule-sync || true)"
+            printf "%s\n" "$out" | grep -q "local: failed (only https:// URLs are allowed)"
+            test ! -e "$HOME/ws/local"
+            printf "https://example.invalid/* *\n" >"$HOME/manifest"
+            out="$(cd "$HOME/ws" && CAPSULE_REPOS_FILE="$HOME/manifest" capsule-sync || true)"
+            printf "%s\n" "$out" | grep -q "repo: \*: failed"
           '
 
       - name: Verify AWS SSO config seeding (writes from env; no-op otherwise)

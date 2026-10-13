@@ -17,7 +17,7 @@ if [ -f "$KEYRING_PASSWORD_FILE" ]; then
   /usr/local/bin/capsule-unlock --password-file "$KEYRING_PASSWORD_FILE" || true
 fi
 
-git config --global --replace-all safe.directory "*" || true
+git config --global --unset-all safe.directory '^\*$' || true
 git config --global protocol.ssh.allow never || true
 git config --global --unset-all credential.https://github.com.helper || true
 git config --global --add credential.https://github.com.helper '' || true

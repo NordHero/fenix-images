@@ -40,7 +40,8 @@ A capsule can declare the git repos it works on and clone them with
 - **`CAPSULE_REPOS`** in `compose.yaml` — space-separated `owner/repo`, cloned
   into `~/workspace/<repo>`.
 - **`~/.capsule-repos`** manifest (optional, mounted) — one `url [dir] [branch]`
-  per line for explicit target dir / branch.
+  per line for explicit target dir / branch. Only `https://` URLs are
+  accepted.
 
 `capsule-sync` clones over HTTPS using the `gh` credential helper, is
 **idempotent** (an existing target dir is skipped, never pulled or reset), and
@@ -97,16 +98,17 @@ Show a message at login, two ways:
 
 - **Simple:** `CAPSULE_WELCOME` in `compose.yaml` — a one-line banner.
 - **Rich:** mount a plain text file at `/home/dev/.capsule-welcome` (printed
-  verbatim, never executed); multi-line is fine.
+  verbatim, never executed); multi-line is fine. Control characters other than
+  tab and newline are stripped from both, so the text cannot send terminal
+  escape sequences.
 
 ## Credentials and the keyring
 
 The entrypoint starts a D-Bus session and writes its environment to
 `~/.keyring-env`, sourced by shells and by the `gh` wrapper. gnome-keyring is
 not started at boot and is never D-Bus-autostarted; `capsule-unlock` starts it
-with the user's password. `git config safe.directory "*"` is set because the
-home volume may be owned by a different host UID. No credentials live in the
-image or repo; they persist in the home volume.
+with the user's password. No credentials live in the image or repo; they
+persist in the home volume.
 
 **Keyring password.** The keyring file (`~/.local/share/keyrings/login.keyring`)
 is encrypted with a password the user chooses:

@@ -2,6 +2,10 @@ services:
   dev:
     image: fenix-base:local
     container_name: example
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
     volumes:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
