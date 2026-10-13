@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/NordHero/fenix-images/compare/v2.0.0...v2.1.0) (2026-10-13)
+
+
+### Features
+
+* keyring password, supply-chain pinning, CI gate ([#7](https://github.com/NordHero/fenix-images/issues/7)) ([a9b610e](https://github.com/NordHero/fenix-images/commit/a9b610eaf929afbc148e3252ea6fccc1b4efc48a))
+
 ## [2.0.0](https://github.com/NordHero/fenix-images/compare/v1.4.0...v2.0.0) (2026-10-13)
 
 
