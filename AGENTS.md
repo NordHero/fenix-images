@@ -66,7 +66,8 @@ single reference.
 mise and its tool backends are the trust point for `[tools]`: declared tools are
 resolved and verified by mise (pinned + checksum-verified mise, Sigstore/SLSA
 provenance, `mise lock` digests). A `mise.toml` with `[env]` is untrusted until
-trusted; the entrypoint trusts the mounted `mise.toml` on start.
+trusted; provisioning skips the mounted `mise.toml` until it is trusted
+(`CAPSULE_TRUST_MISE=1` or a manual `mise trust`).
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: vendor installers run over
 TLS but are not checksum- or signature-verified by this repo. Do not claim

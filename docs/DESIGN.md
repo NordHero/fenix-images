@@ -64,11 +64,19 @@ is visible as `unhealthy` in `docker ps` rather than crash-looping.
 `provision.sh` is the single, re-runnable provisioning entry point. The
 entrypoint calls it on start; it runs `mise install` then `extra-tools.sh`.
 
+**Trust.** A `mise.toml` runs code (`[env]`, hooks), and `mise install` trusts
+the config it reads. `provision.sh` therefore installs nothing until
+`~/mise.toml` is trusted: set `CAPSULE_TRUST_MISE=1` in `compose.yaml` to trust
+it on start (the example does), or review it and run
+`mise trust ~/mise.toml && provision.sh` once. Until then it reports
+`mise: untrusted`, the container stays healthy, and each shell prints a
+reminder. Trust is by path and persists in the home volume.
+
 Provisioning is **non-fatal**: a tool that fails to install no longer stops the
 container from starting — the environment always comes up, and the failure is
 reported instead of hidden. Re-run it any time with `provision.sh`.
 
-- **Status markers** (greppable in the logs): `mise: ok|failed`, one
+- **Status markers** (greppable in the logs): `mise: ok|failed|untrusted`, one
   `extra-tool: <name>[@<ver>]: ok|failed|unknown` line per tool, a summary
   `extra-tools: summary ok=N failed=M (failed: ...)`, and
   `provision: summary mise=... extra-tools=...`.

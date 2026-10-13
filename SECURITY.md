@@ -44,9 +44,11 @@ over the broad default `gh` OAuth token.
 
 ## Trust model
 
-A capsule's `mise.toml` is code, not data. The entrypoint trusts the mounted
-`mise.toml` on start, so its `[env]`, hooks and tool choices run as `dev`
-without a prompt. Only mount a `mise.toml` you would run as a script.
+A capsule's `mise.toml` is code, not data: its `[env]`, hooks and tool choices
+run as `dev`. Provisioning skips a mounted `mise.toml` until it is trusted,
+either by `CAPSULE_TRUST_MISE=1` (trusted on start, no prompt) or by a manual
+`mise trust ~/mise.toml`. Only trust a `mise.toml` you would run as a script.
+Running `mise install` by hand also trusts the config (mise's own behaviour).
 
 mise and its backends are the trust point for `[tools]`:
 

@@ -274,6 +274,10 @@ jobs:
           test "$(docker inspect -f '{{.State.Running}}' fenix-prov)" = "true"
           docker exec fenix-prov bash -lc '
             set -ex
+            for i in $(seq 1 30); do test -f "$HOME/.provisioned/status" && break; sleep 1; done
+            grep -q "mise=untrusted" "$HOME/.provisioned/status"
+            grep -q "mise: untrusted" "$HOME/.provisioned/last-run.log"
+            test ! -e "$HOME/.provisioned/kiro-cli"
             mise trust "$HOME/mise.toml"
             eval "$(mise activate bash)"
             mise ls --current >/dev/null
@@ -295,6 +299,7 @@ jobs:
           docker run -d --name fenix-bad \
             -e GIT_USER_NAME="CI" \
             -e GIT_USER_EMAIL="ci@test" \
+            -e CAPSULE_TRUST_MISE=1 \
             -v "/tmp/ci-mise-bad.toml:/home/dev/mise.toml:ro" \
             fenix-base:ci
           for i in $(seq 1 30); do
