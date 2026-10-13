@@ -5,74 +5,92 @@
 This repo builds a development base image; it must stay **secret-free**. No
 passwords, tokens, or credentials are committed, and none are baked into the
 image. All sign-ins are manual and performed by the user at runtime inside a
-capsule (`gh auth login`, `gcloud auth login`, `aws configure`, `az login`).
+capsule (`gh auth login`, `gcloud auth login`, `aws sso login`, `az login`).
 Credentials live in the capsule's home volume (`/home/dev`), never in the image
 or this repository.
 
 ## Stored credentials
 
-`gh` keeps its token in the gnome-keyring vault in the home volume,
-encrypted with a password the user sets on the first shell (see
-[`docs/DESIGN.md`](docs/DESIGN.md#credentials-and-the-keyring)).
+Docker does not encrypt volumes. What protects a credential depends on where it
+is stored:
 
-- **Protected:** copies of the volume (exports, backups, the Docker Desktop
-  disk image) and a stopped container. The keyring file is unreadable without
-  the password.
-- **Not protected:** any process running as `dev` in an unlocked capsule can
-  read the keyring through the Secret Service API. Host disk encryption, not
-  the keyring, protects the volume while the host is running.
-- **Password file:** `/run/secrets/keyring_password` unlocks without a prompt,
-  but stores the password on the host; anyone with that file and a copy of the
-  volume can read the tokens.
-- **Plaintext fallback blocked:** `gh auth login`/`refresh` is refused while the
+| Credential | Stored in | Protected by |
+|---|---|---|
+| `gh` token | gnome-keyring in the home volume | keyring password + host disk encryption |
+| `gcloud`, `aws`, `az` credentials | files in the home volume | host disk encryption only |
+| keyring password file (optional) | the host | host file permissions + disk encryption |
+
+The keyring password (see
+[`docs/DESIGN.md`](docs/DESIGN.md#credentials-and-the-keyring)):
+
+- **Protects** copies of the volume (exports, backups, the Docker Desktop disk
+  image) and a stopped container: the keyring file is unreadable without the
+  password.
+- **Does not protect** against processes in a running, unlocked capsule. Any
+  process running as `dev` can read the keyring through the Secret Service
+  API, and every file in the home volume.
+- **Password file:** `/run/secrets/keyring_password` unlocks without a prompt
+  but keeps the password on the host; that file plus a copy of the volume
+  exposes the tokens.
+- **No plaintext fallback:** `gh auth login`/`refresh` is refused while the
   keyring is locked, unless `--insecure-storage` is passed.
-- Other CLIs (`gcloud`, `aws`, `az`) store credentials as files in the home
-  volume, protected only by host disk encryption.
+
+Host full-disk encryption (FileVault, BitLocker, LUKS) protects the volume at
+rest while the host is off; it does nothing while the host is running.
+
+Limit what a token can reach: prefer a fine-grained personal access token
+scoped to the repositories a capsule works on (`gh auth login --with-token`)
+over the broad default `gh` OAuth token.
 
 ## Trust model
 
-mise and its tool backends are the trust point for everything declared in a
-`mise.toml`:
+A capsule's `mise.toml` is code, not data. The entrypoint trusts the mounted
+`mise.toml` on start, so its `[env]`, hooks and tool choices run as `dev`
+without a prompt. Only mount a `mise.toml` you would run as a script.
 
-- mise itself is installed at a pinned version with its SHA-256 checksum
-  verified at build time; mise releases are Sigstore-signed with SLSA
-  provenance.
-- mise verifies the tools it installs, and `mise lock` records exact digests.
-- A `mise.toml` that sets `[env]` is untrusted until trusted; the entrypoint
-  trusts the mounted `mise.toml` on start.
+mise and its backends are the trust point for `[tools]`:
+
+- mise itself is installed at a pinned version, SHA-256-verified at build time.
+- `example/mise.toml` pins every version and `example/mise.lock` records
+  checksums for registry and `aqua:` tools; mise rejects a download that does
+  not match. `go:` modules are verified by the Go checksum database. `awscli`,
+  `gcloud`, `pypi:` and `ubi:` entries are pinned by version only. CI fails
+  when the lock is out of date.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
 installed by the vendor's own script. Currently this is only `kiro-cli`, whose
 installer verifies its own checksums but is not verified by mise or this repo.
 Treat it as you would any `curl | bash` vendor installer; prefer a `[tools]`
-backend whenever one exists. Most cloud CLIs (azure-cli, GitHub Copilot CLI,
-gcloud) install through mise backends and gain mise's verification.
+backend whenever one exists.
+
+## Build inputs
+
+| Input | Pinning |
+|---|---|
+| `ubuntu:24.04` base | digest (updated by Dependabot) |
+| Ubuntu packages | latest from Ubuntu's signed apt repos at build time |
+| `gh` | latest from GitHub's apt repo; the repo key is checked against pinned fingerprints |
+| mise | version + SHA-256 |
+| oh-my-zsh, powerlevel10k | commit SHA (`OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT` build-args) |
+| GitHub Actions | commit SHA (updated by Dependabot) |
+
+Workflows use least-privilege permissions. Bump the oh-my-zsh and
+powerlevel10k commits deliberately; Dependabot does not track them.
 
 ## Scanning
 
-Every push and pull request is scanned in CI
-(`.github/workflows/build-images.yml`):
-
-- **Trivy** — the built base image is scanned for HIGH/CRITICAL OS and library
-  vulnerabilities (`ignore-unfixed`), with results uploaded as SARIF.
+CI (`.github/workflows/build-images.yml`) builds the image on every pull
+request and push to `main` and scans it with **Trivy** for HIGH/CRITICAL OS
+and library vulnerabilities that have a fix (`ignore-unfixed`). Results from
+`main` are uploaded to GitHub code scanning.
 
 A weekly **scheduled rebuild** (`.github/workflows/scheduled-rebuild.yml`)
-rebuilds the image with `--no-cache --pull` and Trivy-scans it, surfacing newly
-disclosed LTS base CVEs even when there are no code changes. No image is
-published; rebuild locally with `./build-images.sh` to pick up the
-patches a scan flags.
+rebuilds the image without cache and scans it, surfacing newly disclosed CVEs
+even when there are no code changes. No image is published; rebuild locally
+with `./build-images.sh` to pick up the patches a scan flags.
 
-Shell scripts are linted and format-checked, and the Dockerfile is linted, via
-pre-commit (`shellcheck`, `shfmt`, `hadolint`) and gitleaks for secrets.
-
-## Supply-chain hardening
-
-- The base is pinned to `ubuntu:24.04`; LTS security updates are applied at
-  build time, and the weekly scheduled no-cache rebuild scans for newly
-  disclosed base CVEs. Rebuild locally to apply the patches it flags.
-- mise is pinned and checksum-verified before use.
-- GitHub Actions are pinned to commit SHAs (updated by Dependabot); workflows
-  use least-privilege permissions.
+`shellcheck`, `shfmt`, `hadolint` and `gitleaks` run locally as pre-commit
+hooks (`.pre-commit-config.yaml`), not in CI.
 
 ## Reporting a vulnerability
 

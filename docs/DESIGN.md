@@ -152,8 +152,11 @@ come from `aws sso login` into the home volume, never from the repo or image.
 
 ## Version pinning
 
-- **Base image** pins the OS base + mise + the mechanism. Rebuild with
-  `./build-images.sh` to pick up changes.
-- **`mise.toml`** pins each tool version; `mise lock` records exact digests.
+- **Base image** pins the `ubuntu:24.04` digest, mise (version + checksum),
+  oh-my-zsh and powerlevel10k (commit SHAs), and the `gh` apt key
+  fingerprints. Ubuntu packages and `gh` come from signed apt repos at build
+  time. Rebuild with `./build-images.sh` to pick up changes.
+- **`mise.toml`** pins each tool version; `mise.lock` (mounted beside it)
+  pins checksums where the backend provides them (see [`TOOLS.md`](TOOLS.md)).
 
 Upgrade deliberately by rebuilding the base image and/or bumping versions.

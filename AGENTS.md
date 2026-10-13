@@ -44,14 +44,18 @@ and reference that local image from their capsules. No image is published.
   (azure-cli, copilot, gcloud) are declared in `[tools]` via mise backends.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
-- `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It
+- `example/` — the shipped example capsule (`compose.yaml` + `mise.toml` +
+  `mise.lock`). It
   is the canonical default: the reference used while developing the image and
   the target of CI's config validation. `example/mise.toml` is the extensive
   default tool list; keep it authoritative.
 - `docs/` — human depth: `DESIGN.md` (runtime behavior), `TOOLS.md` (declaring
   tools in `mise.toml`).
-- `.github/workflows/` — `build-images.yml` (PR/main: build + verify + scan),
-  `release-please.yml` (version PRs + tags/CHANGELOG),
+- `.github/workflows/` — `build-images.yml` (PR/main: path classification,
+  config + lock check, build + verify + scan, calls `verify-example.yml`, and
+  the always-run `ci-ok` gate required on `main`),
+  `release-please.yml` (version PRs + tags/CHANGELOG; dispatches CI on the
+  release branch),
   `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish).
 
 There is no root `compose.yaml` or root `mise.toml`; the example capsule is the
@@ -71,6 +75,8 @@ otherwise in docs. See `SECURITY.md`.
 ## Conventions
 
 - Non-root `dev` user (UID/GID 1000); home at `/home/dev`.
+- After changing `example/mise.toml`, run `mise lock` in `example/` and commit
+  `mise.lock`; CI fails on drift. Never use `"latest"`.
 - Tool versions are pinned in `mise.toml`; `extra-tools.sh` supports
   `tool@version` where the installer allows it.
 - Prefer a `[tools]` backend (`pypi:`, `aqua:`, `go:`, `ubi:`, `vfox:`, ...)
