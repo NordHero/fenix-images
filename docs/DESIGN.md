@@ -77,17 +77,16 @@ reported instead of hidden. Re-run it any time with `provision.sh`.
 
 ## Prompt, window title, and iTerm2 profile
 
-The zsh prompt uses the same Powerlevel10k rainbow style as the fenix host, so
-switching into a capsule reads as a color/theme change rather than a different
-layout. Terminal window and tab titles are prefixed with the capsule name and
-current directory, e.g. `[capsule:example] ~/workspace` (updates on `cd`). Set
+The zsh prompt uses the Powerlevel10k rainbow style. Terminal window and tab
+titles are prefixed with the capsule name and current directory, e.g.
+`[capsule:example] ~/workspace` (updates on `cd`). Set
 `CAPSULE_NAME` in the capsule's `compose.yaml` to control the label; it falls
 back to the container hostname when unset. On exit the title is cleared.
 
 On an interactive shell the image switches to the devcontainer iTerm2 profile
-via an OSC 1337 escape and restores the default on exit. The profile names are
-the contract with the host (fenix): `ITERM_DEVCONTAINER_PROFILE` (default
-`fenix-devcontainer`) and `ITERM_DEFAULT_PROFILE` (default `fenix`). Set
+via an OSC 1337 escape and restores the default on exit. Profile names are set
+with `ITERM_DEVCONTAINER_PROFILE` (default `fenix-devcontainer`) and
+`ITERM_DEFAULT_PROFILE` (default `fenix`); create matching iTerm2 profiles. Set
 `CAPSULE_ITERM_PROFILE_SWITCH=0` to opt out. Other terminals ignore the escape.
 
 ## Welcome text
