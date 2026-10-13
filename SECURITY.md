@@ -97,6 +97,14 @@ request and push to `main` and scans it with **Trivy** for HIGH/CRITICAL OS
 and library vulnerabilities that have a fix (`ignore-unfixed`). Results from
 `main` are uploaded to GitHub code scanning.
 
+The tools mise installs live in the home volume, not the image.
+`verify-example` installs the example capsule's full toolset, copies
+`~/.local/share/mise/installs` and `~/.local/bin` out of the volume and scans
+them with Trivy (`rootfs`, same severity filter). Results from `main`, the
+weekly run and manual runs are uploaded under the `trivy-mise-tools`
+category. Tools installed in your own capsules are not scanned; bump their
+versions in `mise.toml` when a scan flags the same tool.
+
 A weekly **scheduled rebuild** (`.github/workflows/scheduled-rebuild.yml`)
 rebuilds the image without cache and scans it, surfacing newly disclosed CVEs
 even when there are no code changes. No image is published; rebuild locally
