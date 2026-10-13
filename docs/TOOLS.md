@@ -75,7 +75,9 @@ exists. See [`SECURITY.md`](../SECURITY.md).
 - Mount `mise.lock` and `.mise/locks/` beside `mise.toml` (see
   [`example/compose.yaml`](../example/compose.yaml)). mise then installs the
   locked versions and rejects a download whose checksum differs from the lock;
-  a `pypi:` tool fails to install without its `.mise/locks/` entry.
+  a `pypi:` tool fails to install without its `.mise/locks/` entry. Locked
+  `pypi:` installs never build from source, so every dependency needs a wheel
+  for the configured `python`; the example uses 3.14 for that reason.
 - The lock records checksums for registry and `aqua:` tools. Each `pypi:` tool
   gets a hash-locked uv lockfile covering all its dependencies in
   `.mise/locks/`. `go:` modules are verified by the Go checksum database at

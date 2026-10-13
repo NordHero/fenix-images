@@ -96,7 +96,7 @@ jobs:
 
             # Pinned language versions must match exactly.
             go version | grep -q "go1.27.2"
-            python --version 2>&1 | grep -q "3.15.0"
+            python --version 2>&1 | grep -q "3.14.8"
 
             # Smoke-run a representative tool from each category.
             gopls version
