@@ -10,7 +10,7 @@ ENV DEV_HOME=/home/dev
 ARG MISE_VERSION=v2026.10.3
 ARG OHMYZSH_COMMIT=964ddf789b022b6958b27d02d7fa54f552de21e9
 ARG POWERLEVEL10K_COMMIT=d05a1b00f9a61f9578bf9dc19b8451942dde8734
-ARG GH_KEY_FINGERPRINTS="2C6106201985B60E6C7AC87323F3D4EA75716059 7F38BBB59D064DBCB3D84D725612B36462313325"
+ARG GH_APT_FINGERPRINTS="2C6106201985B60E6C7AC87323F3D4EA75716059 7F38BBB59D064DBCB3D84D725612B36462313325"
 
 ARG IMAGE_VERSION=dev
 ARG SOURCE_COMMIT=unknown
@@ -41,7 +41,7 @@ RUN if getent passwd ${DEV_UID} >/dev/null; then \
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
     && got="$(gpg --show-keys --with-colons /usr/share/keyrings/githubcli-archive-keyring.gpg | awk -F: '/^pub/{getline; print $10}' | sort | tr '\n' ' ')" \
-    && want="$(printf '%s\n' ${GH_KEY_FINGERPRINTS} | sort | tr '\n' ' ')" \
+    && want="$(printf '%s\n' ${GH_APT_FINGERPRINTS} | sort | tr '\n' ' ')" \
     && test "$got" = "$want" \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
     && apt-get update && apt-get install -y --no-install-recommends gh \
