@@ -1,5 +1,17 @@
 # Changelog
 
+## [3.0.0](https://github.com/NordHero/fenix-images/compare/v2.1.0...v3.0.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* a capsule on a fresh volume no longer provisions its mise.toml on start unless CAPSULE_TRUST_MISE=1 is set or the user runs `mise trust ~/mise.toml && provision.sh`. Existing volumes keep their trust.
+
+### Bug Fixes
+
+* narrow safe.directory, harden capsule-sync input and welcome text ([#10](https://github.com/NordHero/fenix-images/issues/10)) ([cb5a107](https://github.com/NordHero/fenix-images/commit/cb5a10700196a6d51fd39c2441583dd504e3b0b9))
+* provision only a trusted mise.toml ([#11](https://github.com/NordHero/fenix-images/issues/11)) ([b1c3ff8](https://github.com/NordHero/fenix-images/commit/b1c3ff8fb75df3a18b6d6d04b437cdced8a29282))
+
 ## [2.1.0](https://github.com/NordHero/fenix-images/compare/v2.0.0...v2.1.0) (2026-10-13)
 
 
