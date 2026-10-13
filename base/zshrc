@@ -53,9 +53,9 @@ if [[ -o interactive ]]; then
   [[ -n "${CAPSULE_INFO:-}" ]] && print -P "%F{8}${CAPSULE_INFO}%f"
 
   if [[ -f "$HOME/.capsule-welcome" ]]; then
-    cat -- "$HOME/.capsule-welcome"
+    tr -d '\000-\010\013-\037\177' <"$HOME/.capsule-welcome"
   elif [[ -n "${CAPSULE_WELCOME:-}" ]]; then
-    print -r -- "${CAPSULE_WELCOME}"
+    print -r -- "${CAPSULE_WELCOME}" | tr -d '\000-\010\013-\037\177'
   fi
 
   _capsule_on_exit() {

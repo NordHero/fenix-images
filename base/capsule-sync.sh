@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -uo pipefail
+set -f
 
 WORKSPACE="${CAPSULE_WORKSPACE:-$HOME/workspace}"
 MANIFEST="${CAPSULE_REPOS_FILE:-$HOME/.capsule-repos}"
@@ -14,8 +15,21 @@ skipped=0
 failed=0
 failed_list=""
 
+fail_one() {
+  printf 'repo: %s: failed (%s)\n' "$1" "$2"
+  failed=$((failed + 1))
+  failed_list="${failed_list:+$failed_list }$1"
+}
+
 clone_one() {
   local url="$1" dir="$2" branch="$3" target
+  case "$url" in
+    https://*) ;;
+    *)
+      fail_one "$dir" "only https:// URLs are allowed"
+      return 0
+      ;;
+  esac
   target="$WORKSPACE/$dir"
   if [ -e "$target" ]; then
     printf 'repo: %s: skipped (exists)\n' "$dir"
@@ -29,9 +43,7 @@ clone_one() {
     printf 'repo: %s: cloned\n' "$dir"
     cloned=$((cloned + 1))
   else
-    printf 'repo: %s: failed (is gh authenticated? run: gh auth login)\n' "$dir"
-    failed=$((failed + 1))
-    failed_list="${failed_list:+$failed_list }$dir"
+    fail_one "$dir" "is gh authenticated? run: gh auth login"
   fi
 }
 
@@ -41,9 +53,7 @@ for entry in ${CAPSULE_REPOS:-}; do
       clone_one "https://github.com/${entry}.git" "${entry##*/}" ""
       ;;
     *)
-      printf 'repo: %s: failed (expected owner/repo)\n' "$entry"
-      failed=$((failed + 1))
-      failed_list="${failed_list:+$failed_list }$entry"
+      fail_one "$entry" "expected owner/repo"
       ;;
   esac
 done

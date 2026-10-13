@@ -42,6 +42,16 @@ Limit what a token can reach: prefer a fine-grained personal access token
 scoped to the repositories a capsule works on (`gh auth login --with-token`)
 over the broad default `gh` OAuth token.
 
+## Container
+
+- The image has no `sudo`; everything runs as `dev`. The example capsule also
+  sets `cap_drop: [ALL]` and `no-new-privileges:true`; copy both into your
+  capsules.
+- git's ownership check stays on. The home volume and `~/workspace` are owned
+  by `dev`. For a bind mount owned by another UID, allow that path only:
+  `git config --global --add safe.directory /path/to/repo`. The entrypoint
+  removes a `safe.directory "*"` left by older images.
+
 ## Trust model
 
 A capsule's `mise.toml` is code, not data. The entrypoint trusts the mounted
