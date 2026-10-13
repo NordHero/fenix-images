@@ -6,8 +6,6 @@ You don't build a custom image per project — you declare the tools you want in
 `mise.toml`, and they are installed into the capsule's home volume on first
 start.
 
-This is **Layer 3** of [fenix](https://github.com/NordHero/fenix): the
-development model that fenix (host Layers 0–2) explicitly leaves out of scope.
 It is self-contained — usable with nothing but `docker compose`.
 
 A **capsule** is an encapsulated development environment definition: a folder
@@ -107,9 +105,8 @@ self-contained.
 - Not a per-project image builder — tools are declared in `mise.toml`, not baked
   into images.
 - Not a registry-first flow — the documented path is build-it-yourself
-  (`fenix-base:local`). This repo is private; no image is published for
-  consumption.
-- Not a host bootstrapper — that is fenix (Layers 0–2). This repo is Layer 3.
+  (`fenix-base:local`). No image is published for consumption.
+- Not a host bootstrapper — it assumes Docker is already set up on the host.
 - Not a place for project or customer content, cloud/AI work, or secrets.
 
 ## Developing this image

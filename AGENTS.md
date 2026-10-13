@@ -11,14 +11,15 @@ doc; everything else is written for humans.
    narration, and verbose justification.
 3. **No secrets.** Credentials never live in the image or the repo; they stay in
    the home volume (`/home/dev`) at runtime, authenticated by the user.
+4. **No AI attribution.** Commit messages and PR descriptions carry no
+   `Co-Authored-By`, "Generated with", or other trailers naming Claude,
+   Anthropic, Kiro, Copilot, or any AI tool.
 
 ## Project
 
 **fenix-images** builds a single, minimal non-root development base image with
 [mise](https://mise.jdx.dev) baked in, and ships a sample capsule. It is
-**Layer 3** of [fenix](https://github.com/NordHero/fenix) — the development
-model fenix (host Layers 0–2) leaves out of scope. It is self-contained: usable
-with nothing but `docker compose`.
+self-contained: usable with nothing but `docker compose`.
 
 Tools are **not** baked per image; they are declared in a `mise.toml` and
 installed into the home volume on first boot. A **capsule** is a folder with
@@ -27,8 +28,7 @@ the plural.
 
 The documented flow is self-contained and build-it-yourself: users clone this
 repo, build the base image locally (`./build-images.sh` -> `fenix-base:local`),
-and reference that local image from their capsules. The repo is private and
-publishes no image; the documented flow is build-it-yourself.
+and reference that local image from their capsules. No image is published.
 
 ## Where things live
 
@@ -65,7 +65,7 @@ trusted; the entrypoint trusts the mounted `mise.toml` on start.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: vendor installers run over
 TLS but are not checksum- or signature-verified by this repo. Do not claim
-otherwise in docs. See `SECURITY.md` and issue #51.
+otherwise in docs. See `SECURITY.md`.
 
 ## Conventions
 

@@ -26,8 +26,7 @@ installed by the vendor's own script. Currently this is only `kiro-cli`, whose
 installer verifies its own checksums but is not verified by mise or this repo.
 Treat it as you would any `curl | bash` vendor installer; prefer a `[tools]`
 backend whenever one exists. Most cloud CLIs (azure-cli, GitHub Copilot CLI,
-gcloud) now install through mise backends and gain mise's verification. See
-[issue #51](https://github.com/NordHero/fenix-images/issues/51).
+gcloud) install through mise backends and gain mise's verification.
 
 ## Scanning
 
@@ -39,8 +38,8 @@ Every push and pull request is scanned in CI
 
 A weekly **scheduled rebuild** (`.github/workflows/scheduled-rebuild.yml`)
 rebuilds the image with `--no-cache --pull` and Trivy-scans it, surfacing newly
-disclosed LTS base CVEs even when there are no code changes. The repo is private
-and publishes no image; rebuild locally with `./build-images.sh` to pick up the
+disclosed LTS base CVEs even when there are no code changes. No image is
+published; rebuild locally with `./build-images.sh` to pick up the
 patches a scan flags.
 
 Shell scripts are linted and format-checked, and the Dockerfile is linted, via

@@ -33,7 +33,7 @@ Conventional Commits drive [release-please](https://github.com/googleapis/releas
 
 ## Scope
 
-This repo builds the fenix **Layer 3** base image and ships a sample capsule.
+This repo builds a minimal development base image and ships a sample capsule.
 It does not contain project or customer content, cloud/AI work, or secrets —
 see [`README.md`](README.md), [`AGENTS.md`](AGENTS.md), and
 [`SECURITY.md`](SECURITY.md).
