@@ -14,6 +14,11 @@ services:
       # ~/.aws/config read-only. Takes precedence over the AWS_SSO_* env vars
       # below; you then only run `aws sso login` — no `aws configure sso`.
       # - ./aws-config:/home/dev/.aws/config:ro
+    # Keyring password: the first shell asks for it. For unattended unlock,
+    # uncomment this and the top-level `secrets:` below. The password then
+    # lives on the host in ./keyring_password (keep it out of git).
+    # secrets:
+    #   - keyring_password
     environment:
       CAPSULE_NAME: "example"
       GIT_USER_NAME: "Ada Lovelace"
@@ -37,3 +42,6 @@ services:
       # AWS_DEFAULT_OUTPUT: "json"
 volumes:
   example-home:
+# secrets:
+#   keyring_password:
+#     file: ./keyring_password

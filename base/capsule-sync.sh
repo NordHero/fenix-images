@@ -3,6 +3,7 @@ set -uo pipefail
 
 WORKSPACE="${CAPSULE_WORKSPACE:-$HOME/workspace}"
 MANIFEST="${CAPSULE_REPOS_FILE:-$HOME/.capsule-repos}"
+export GIT_TERMINAL_PROMPT=0
 
 mkdir -p "$WORKSPACE"
 

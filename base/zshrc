@@ -5,6 +5,11 @@ source "$ZSH/oh-my-zsh.sh"
 
 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
 
+if [[ -o interactive ]] && [[ -t 0 ]] && [[ "${CAPSULE_KEYRING_PROMPT:-1}" != "0" ]] \
+  && command -v capsule-unlock >/dev/null 2>&1 && ! capsule-unlock --status >/dev/null 2>&1; then
+  capsule-unlock
+fi
+
 [ -f "$HOME/.keyring-env" ] && source "$HOME/.keyring-env"
 
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"

@@ -20,6 +20,9 @@ RUN apt-get update && apt-get upgrade -y \
       unzip tini \
       vim nano less \
       dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools \
+    && rm -f /usr/share/dbus-1/services/org.freedesktop.secrets.service \
+      /usr/share/dbus-1/services/org.gnome.keyring.service \
+      /usr/share/dbus-1/services/org.freedesktop.impl.portal.Secret.service \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -37,9 +40,7 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/* \
-    && mv /usr/bin/gh /usr/bin/gh.real \
-    && printf '#!/bin/bash\n[ -f "$HOME/.keyring-env" ] && source "$HOME/.keyring-env"\nexec /usr/bin/gh.real "$@"\n' > /usr/bin/gh \
-    && chmod +x /usr/bin/gh
+    && mv /usr/bin/gh /usr/bin/gh.real
 
 RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
     && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz" -o /tmp/mise.tgz \
@@ -67,6 +68,8 @@ COPY --chmod=0755 base/provision.sh /usr/local/bin/provision.sh
 COPY --chmod=0755 base/xclip-shim.sh /usr/local/bin/xclip
 COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
 COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
+COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
+COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
 RUN mkdir -p /etc/capsule \
