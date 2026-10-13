@@ -2,15 +2,20 @@
 set -u
 
 mkdir -p "$HOME/.cache" "$HOME/.local/share/keyrings" "$HOME/workspace" || true
+rm -rf "$HOME"/.cache/keyring-* "$HOME/.cache/capsule-unlock.lock" || true
 
 eval "$(dbus-launch --sh-syntax)" 2>/dev/null || true
-eval "$(printf '\n' | gnome-keyring-daemon --unlock --components=secrets,pkcs11,ssh 2>/dev/null)" || true
 
 cat >"$HOME/.keyring-env" <<EOF || true
 export DBUS_SESSION_BUS_ADDRESS='${DBUS_SESSION_BUS_ADDRESS:-}'
-export GNOME_KEYRING_CONTROL='${GNOME_KEYRING_CONTROL:-}'
-export SSH_AUTH_SOCK='${SSH_AUTH_SOCK:-}'
+export GNOME_KEYRING_CONTROL=''
+export SSH_AUTH_SOCK=''
 EOF
+
+KEYRING_PASSWORD_FILE="${KEYRING_PASSWORD_FILE:-/run/secrets/keyring_password}"
+if [ -f "$KEYRING_PASSWORD_FILE" ]; then
+  /usr/local/bin/capsule-unlock --password-file "$KEYRING_PASSWORD_FILE" || true
+fi
 
 git config --global --replace-all safe.directory "*" || true
 git config --global protocol.ssh.allow never || true

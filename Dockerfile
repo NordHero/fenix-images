@@ -1,4 +1,4 @@
-FROM ubuntu:24.04
+FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BROWSER=true
@@ -8,6 +8,9 @@ ENV DEV_GID=1000
 ENV DEV_HOME=/home/dev
 
 ARG MISE_VERSION=v2026.10.3
+ARG OHMYZSH_COMMIT=964ddf789b022b6958b27d02d7fa54f552de21e9
+ARG POWERLEVEL10K_COMMIT=d05a1b00f9a61f9578bf9dc19b8451942dde8734
+ARG GH_KEY_FINGERPRINTS="2C6106201985B60E6C7AC87323F3D4EA75716059 7F38BBB59D064DBCB3D84D725612B36462313325"
 
 ARG IMAGE_VERSION=dev
 ARG SOURCE_COMMIT=unknown
@@ -20,6 +23,9 @@ RUN apt-get update && apt-get upgrade -y \
       unzip tini \
       vim nano less \
       dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools \
+    && rm -f /usr/share/dbus-1/services/org.freedesktop.secrets.service \
+      /usr/share/dbus-1/services/org.gnome.keyring.service \
+      /usr/share/dbus-1/services/org.freedesktop.impl.portal.Secret.service \
     && locale-gen en_US.UTF-8 \
     && rm -rf /var/lib/apt/lists/*
 
@@ -34,12 +40,13 @@ RUN if getent passwd ${DEV_UID} >/dev/null; then \
     && useradd -m -u ${DEV_UID} -g ${DEV_GID} -s /usr/bin/zsh -d ${DEV_HOME} ${DEV_USER}
 
 RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o /usr/share/keyrings/githubcli-archive-keyring.gpg \
+    && got="$(gpg --show-keys --with-colons /usr/share/keyrings/githubcli-archive-keyring.gpg | awk -F: '/^pub/{getline; print $10}' | sort | tr '\n' ' ')" \
+    && want="$(printf '%s\n' ${GH_KEY_FINGERPRINTS} | sort | tr '\n' ' ')" \
+    && test "$got" = "$want" \
     && echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" > /etc/apt/sources.list.d/github-cli.list \
     && apt-get update && apt-get install -y --no-install-recommends gh \
     && rm -rf /var/lib/apt/lists/* \
-    && mv /usr/bin/gh /usr/bin/gh.real \
-    && printf '#!/bin/bash\n[ -f "$HOME/.keyring-env" ] && source "$HOME/.keyring-env"\nexec /usr/bin/gh.real "$@"\n' > /usr/bin/gh \
-    && chmod +x /usr/bin/gh
+    && mv /usr/bin/gh /usr/bin/gh.real
 
 RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
     && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz" -o /tmp/mise.tgz \
@@ -51,12 +58,10 @@ RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
     && rm -rf /tmp/mise /tmp/mise.tgz /tmp/SHASUMS256.txt \
     && mise --version
 
-RUN git clone --depth=1 https://github.com/ohmyzsh/ohmyzsh.git \
-      /opt/devbox-skel/.oh-my-zsh \
-    && rm -rf /opt/devbox-skel/.oh-my-zsh/.git \
-    && git clone --depth=1 https://github.com/romkatv/powerlevel10k.git \
+RUN fetch() { git init -q "$3" && git -C "$3" fetch -q --depth=1 "$1" "$2" && git -C "$3" checkout -q FETCH_HEAD && rm -rf "$3/.git"; } \
+    && fetch https://github.com/ohmyzsh/ohmyzsh.git "${OHMYZSH_COMMIT}" /opt/devbox-skel/.oh-my-zsh \
+    && fetch https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_COMMIT}" \
       /opt/devbox-skel/.oh-my-zsh-custom/themes/powerlevel10k \
-    && rm -rf /opt/devbox-skel/.oh-my-zsh-custom/themes/powerlevel10k/.git \
     && chown -R ${DEV_UID}:${DEV_GID} /opt/devbox-skel
 
 COPY --chown=${DEV_UID}:${DEV_GID} base/zshrc /opt/devbox-skel/.zshrc
@@ -67,6 +72,8 @@ COPY --chmod=0755 base/provision.sh /usr/local/bin/provision.sh
 COPY --chmod=0755 base/xclip-shim.sh /usr/local/bin/xclip
 COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
 COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
+COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
+COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
 RUN mkdir -p /etc/capsule \

@@ -44,11 +44,12 @@ A capsule can declare the git repos it works on and clone them with
 
 `capsule-sync` clones over HTTPS using the `gh` credential helper, is
 **idempotent** (an existing target dir is skipped, never pulled or reset), and
-prints a per-repo `cloned|skipped|failed` line plus a summary. Because GitHub
-auth happens interactively after first boot, the flow is `gh auth login` then
-`capsule-sync`. The entrypoint attempts it once on first boot (non-blocking):
-public repos clone, anything needing auth is reported and left for the manual
-`capsule-sync` after login. It never blocks or fails container start.
+prints a per-repo `cloned|skipped|failed` line plus a summary. Git never prompts
+for credentials (`GIT_TERMINAL_PROMPT=0`); a repo needing auth fails fast. The
+entrypoint attempts it on start (non-blocking): public repos clone, anything
+needing auth is reported. It runs again after `capsule-unlock` unlocks the
+keyring, and manually after `gh auth login`. It never blocks or fails container
+start.
 
 ## Health
 
@@ -100,11 +101,37 @@ Show a message at login, two ways:
 
 ## Credentials and the keyring
 
-The entrypoint starts a dbus + gnome-keyring session and writes the environment
-to `~/.keyring-env`, sourced by shells and by the `gh`/`copilot` wrappers so
-tokens resolve against the Secret Service vault. `git config safe.directory "*"`
-is set because the home volume may be owned by a different host UID. No
-credentials live in the image or repo; they persist in the home volume.
+The entrypoint starts a D-Bus session and writes its environment to
+`~/.keyring-env`, sourced by shells and by the `gh` wrapper. gnome-keyring is
+not started at boot and is never D-Bus-autostarted; `capsule-unlock` starts it
+with the user's password. `git config safe.directory "*"` is set because the
+home volume may be owned by a different host UID. No credentials live in the
+image or repo; they persist in the home volume.
+
+**Keyring password.** The keyring file (`~/.local/share/keyrings/login.keyring`)
+is encrypted with a password the user chooses:
+
+- **First interactive shell** after each container start runs `capsule-unlock`:
+  on a fresh volume it asks for a new password (with confirmation); afterwards
+  it asks for that password. Empty passwords are refused. Three failed attempts
+  leave the keyring locked; run `capsule-unlock` to retry. Set
+  `CAPSULE_KEYRING_PROMPT=0` to skip the prompt at shell start.
+- **Unattended:** if `/run/secrets/keyring_password` (or `KEYRING_PASSWORD_FILE`)
+  exists and is readable by UID 1000, the entrypoint unlocks with it at start
+  (compose `secrets:`; see
+  [`example/compose.yaml`](../example/compose.yaml)). The password then lives
+  on the host in that file.
+- **Volumes from older images** hold a keyring with no real password.
+  `capsule-unlock` detects it and offers a reset: the keyring is deleted (stored
+  tokens are lost; sign in again) and a new password is set. Declining keeps it
+  unlocked as before. A password file never unlocks such a keyring.
+- **No plaintext fallback.** With the keyring locked, `gh` would store its token
+  in plaintext `~/.config/gh/hosts.yml`. The `gh` wrapper refuses `gh auth
+  login`/`refresh` while the keyring is locked unless `--insecure-storage` is
+  passed. `capsule-unlock` warns when `hosts.yml` already holds a token; move
+  it with `gh auth logout` then `gh auth login`.
+- After unlocking, `capsule-unlock` runs `capsule-sync` when repos are declared.
+  `capsule-unlock --status` reports `unlocked` or `locked`.
 
 **AWS config.** Two non-secret ways to configure the AWS CLI; tokens always
 come from `aws sso login` into the home volume, never from the repo or image.
@@ -125,8 +152,12 @@ come from `aws sso login` into the home volume, never from the repo or image.
 
 ## Version pinning
 
-- **Base image** pins the OS base + mise + the mechanism. Rebuild with
-  `./build-images.sh` to pick up changes.
-- **`mise.toml`** pins each tool version; `mise lock` records exact digests.
+- **Base image** pins the `ubuntu:24.04` digest, mise (version + checksum),
+  oh-my-zsh and powerlevel10k (commit SHAs), and the `gh` apt key
+  fingerprints. Ubuntu packages and `gh` come from signed apt repos at build
+  time. Rebuild with `./build-images.sh` to pick up changes.
+- **`mise.toml`** pins each tool version; `mise.lock` and `.mise/locks/`
+  (mounted beside it)
+  pins checksums where the backend provides them (see [`TOOLS.md`](TOOLS.md)).
 
 Upgrade deliberately by rebuilding the base image and/or bumping versions.

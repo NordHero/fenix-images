@@ -13,8 +13,7 @@ pre-commit run --all-files         # one-off full sweep
 
 ## Quality gates
 
-The same checks run as **pre-commit hooks** (`.pre-commit-config.yaml`) and in
-**CI** (`.github/workflows/build-images.yml`):
+**Pre-commit hooks** (`.pre-commit-config.yaml`, local only):
 
 | Tool | Role |
 |---|---|
@@ -22,10 +21,25 @@ The same checks run as **pre-commit hooks** (`.pre-commit-config.yaml`) and in
 | `shfmt -i 2 -ci -bn` | shell formatting (2-space indent, indented case arms) |
 | `hadolint` | Dockerfile linting |
 | `gitleaks` | secret scanning |
-| `trivy` | image vulnerability scan (HIGH/CRITICAL) in CI |
 
-CI also builds the base image and asserts the entrypoint reaches steady state
-and that one `[tools]` and one `EXTRA_TOOLS` package provision and resolve.
+**CI** (`.github/workflows/build-images.yml`):
+
+- `validate-config`: example `mise.toml` parses, has no `"latest"`, and
+  `example/mise.lock` and `example/.mise/locks/` are current (`mise lock`
+  produces no diff).
+- `build`: builds the image; asserts contents, the entrypoint, the keyring
+  password flows, `capsule-sync`, AWS seeding, provisioning of one `[tools]`
+  and one `EXTRA_TOOLS` package; Trivy scan (HIGH/CRITICAL).
+- `verify-example`: runs the example capsule and installs its full toolset.
+- `ci-ok`: always runs and passes only when every job above passed or was
+  skipped. Jobs are skipped by path: docs-only changes skip all of them;
+  `verify-example` runs only when the image or example changes. `ci-ok` is the
+  required status check on `main`.
+
+release-please PRs are pushed with the workflow token, which does not trigger
+workflows; `release-please.yml` dispatches `build-images` on the release branch
+so the PR gets `ci-ok`. To re-run CI on any branch:
+`gh workflow run build-images.yml --ref <branch>`.
 
 Keep `main` green; open a pull request and never push to `main` directly.
 Conventional Commits drive [release-please](https://github.com/googleapis/release-please)

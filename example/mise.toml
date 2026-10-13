@@ -4,17 +4,17 @@
 [tools]
 # Languages
 go = "1.27.2"
-python = "3.15.0"
+python = "3.14.8"
 
 # Go dev tooling
-"go:golang.org/x/tools/gopls" = "latest"
-"go:golang.org/x/tools/cmd/goimports" = "latest"
-"go:honnef.co/go/tools/cmd/staticcheck" = "latest"
+"go:golang.org/x/tools/gopls" = "0.23.0"
+"go:golang.org/x/tools/cmd/goimports" = "0.52.0"
+"go:honnef.co/go/tools/cmd/staticcheck" = "0.8.1"
 golangci-lint = "2.14.0"
 goreleaser = "2.18.2"
 
 # Pre-commit / hooks
-pre-commit = "latest"
+pre-commit = "4.6.2"
 "ubi:j178/prek" = "0.5.5"
 
 # Infrastructure as code
@@ -30,10 +30,10 @@ argocd = "2.13.2"
 awscli = "2.37.9"
 "pypi:azure-cli" = "2.67.0"
 gcloud = { version = "497.0.0", components = ["gke-gcloud-auth-plugin"] }
-"aqua:github/copilot-cli" = "latest"
+"aqua:github/copilot-cli" = "1.0.95"
 
 # Misc
-uv = "latest"
+uv = "0.13.0"
 
 [env]
 EXTRA_TOOLS = "kiro-cli"

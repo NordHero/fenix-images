@@ -5,6 +5,8 @@ services:
     volumes:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
+      - ./mise.lock:/home/dev/mise.lock:ro
+      - ./.mise/locks:/home/dev/.mise/locks:ro
       # Welcome text, option 2 (rich): mount a plain text file, printed
       # verbatim at login (never executed). Multi-line is fine.
       # - ./welcome.txt:/home/dev/.capsule-welcome:ro
@@ -14,6 +16,11 @@ services:
       # ~/.aws/config read-only. Takes precedence over the AWS_SSO_* env vars
       # below; you then only run `aws sso login` — no `aws configure sso`.
       # - ./aws-config:/home/dev/.aws/config:ro
+    # Keyring password: the first shell asks for it. For unattended unlock,
+    # uncomment this and the top-level `secrets:` below. The password then
+    # lives on the host in ./keyring_password (keep it out of git).
+    # secrets:
+    #   - keyring_password
     environment:
       CAPSULE_NAME: "example"
       GIT_USER_NAME: "Ada Lovelace"
@@ -37,3 +44,6 @@ services:
       # AWS_DEFAULT_OUTPUT: "json"
 volumes:
   example-home:
+# secrets:
+#   keyring_password:
+#     file: ./keyring_password

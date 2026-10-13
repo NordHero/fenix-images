@@ -25,10 +25,10 @@ For tools not in the registry, name the backend explicitly:
 
 ```toml
 [tools]
-"go:golang.org/x/tools/gopls" = "latest"      # go install
+"go:golang.org/x/tools/gopls" = "0.23.0"      # go install
 "ubi:j178/prek" = "0.5.5"                      # GitHub-release binary
 "pypi:azure-cli" = "2.67.0"                    # PyPI package (az)
-"aqua:github/copilot-cli" = "latest"           # aqua registry
+"aqua:github/copilot-cli" = "1.0.95"           # aqua registry
 ```
 
 - `go:` installs `go install`-style tools.
@@ -67,6 +67,20 @@ exists. See [`SECURITY.md`](../SECURITY.md).
 
 ## Reproducibility
 
-- Pin every version in `[tools]`.
-- Run `mise lock` to generate a `mise.lock` that pins exact digests.
+- Pin every version in `[tools]`; avoid `"latest"`.
+- Run `mise lock` next to `mise.toml` after any change and commit `mise.lock`
+  and `.mise/locks/`. The example locks `linux-x64` and `linux-arm64`; mise
+  keeps those platforms on re-runs. A `pypi:` entry needs a Python interpreter
+  on `PATH` while locking.
+- Mount `mise.lock` and `.mise/locks/` beside `mise.toml` (see
+  [`example/compose.yaml`](../example/compose.yaml)). mise then installs the
+  locked versions and rejects a download whose checksum differs from the lock;
+  a `pypi:` tool fails to install without its `.mise/locks/` entry. Locked
+  `pypi:` installs never build from source, so every dependency needs a wheel
+  for the configured `python`; the example uses 3.14 for that reason.
+- The lock records checksums for registry and `aqua:` tools. Each `pypi:` tool
+  gets a hash-locked uv lockfile covering all its dependencies in
+  `.mise/locks/`. `go:` modules are verified by the Go checksum database at
+  install. `awscli`, `gcloud` and `ubi:` entries are pinned by version only.
+- CI fails when `example/mise.lock` or `example/.mise/locks/` is out of date.
 - Changing a version re-provisions that tool on the next container start.

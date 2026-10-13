@@ -9,11 +9,7 @@ on:
       - "LICENSE"
       - ".github/dependabot.yml"
   pull_request:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
-      - ".github/dependabot.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,7 +19,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      example: ${{ steps.diff.outputs.example }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "code=true" >>"$GITHUB_OUTPUT"
+            echo "example=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$(git diff --name-only "$BASE" HEAD)"
+          printf '%s\n' "$files"
+          code=false
+          example=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              *.md | docs/* | LICENSE | .github/dependabot.yml) ;;
+              *) code=true ;;
+            esac
+            case "$f" in
+              example/* | base/* | Dockerfile | extra-tools.sh | build-images.sh | .github/workflows/build-images.yml | .github/workflows/verify-example.yml) example=true ;;
+            esac
+          done <<<"$files"
+          echo "code=$code" >>"$GITHUB_OUTPUT"
+          echo "example=$example" >>"$GITHUB_OUTPUT"
+
   validate-config:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,6 +77,18 @@ jobs:
           mise trust mise.toml
           mise config get --file mise.toml >/dev/null
           mise ls --current >/dev/null
+          if grep -nE '=[[:space:]]*"latest"' mise.toml; then
+            echo "pin every [tools] version" >&2
+            exit 1
+          fi
+
+      - name: Check example mise.lock is current
+        run: |
+          set -ex
+          cd example
+          mise lock
+          git diff --exit-code mise.lock .mise/locks
+          test -z "$(git status --porcelain .mise/locks)"
 
   build:
     needs: validate-config
@@ -77,6 +126,8 @@ jobs:
             test -x /usr/local/bin/extra-tools.sh
             test -x /usr/local/bin/capsule-sync
             test -x /usr/local/bin/capsule-info
+            test -x /usr/local/bin/capsule-unlock
+            test ! -e /usr/share/dbus-1/services/org.freedesktop.secrets.service
             test -s /etc/capsule/info.json
             grep -q "\"source_commit\"" /etc/capsule/info.json
             test -n "$CAPSULE_INFO"
@@ -113,6 +164,51 @@ jobs:
           done
           test "$(docker inspect -f '{{.State.Health.Status}}' fenix-ep)" = "healthy"
           docker rm -f fenix-ep
+
+      - name: Verify keyring password (fresh, restart, wrong, legacy, secret file)
+        run: |
+          set -ex
+          ex() { c="$1"; shift; docker exec -i "$c" bash -lc "$*"; }
+          lookup() { ex "$1" '. ~/.keyring-env; secret-tool lookup svc ci' || true; }
+          up() { docker run -d --name "$1" -e GIT_USER_NAME=CI -e GIT_USER_EMAIL=ci@test "${@:2}" fenix-base:ci; sleep 3; }
+          restart() { docker restart "$1"; sleep 3; }
+
+          up fenix-kr
+          if ex fenix-kr capsule-unlock --status; then exit 1; fi
+          if ex fenix-kr 'gh auth login --with-token </dev/null'; then exit 1; fi
+          ex fenix-kr 'test ! -f ~/.config/gh/hosts.yml'
+          if printf '\n\n' | ex fenix-kr capsule-unlock; then exit 1; fi
+          printf 'pw1\npw1\n' | ex fenix-kr capsule-unlock
+          ex fenix-kr capsule-unlock --status
+          ex fenix-kr '. ~/.keyring-env; printf v1 | secret-tool store --label=ci svc ci'
+          restart fenix-kr
+          if ex fenix-kr capsule-unlock --status; then exit 1; fi
+          test -z "$(lookup fenix-kr)"
+          if printf 'x\ny\nz\n' | ex fenix-kr capsule-unlock; then exit 1; fi
+          printf 'pw1\n' | ex fenix-kr capsule-unlock
+          test "$(lookup fenix-kr)" = "v1"
+          docker rm -f fenix-kr
+
+          up fenix-leg
+          ex fenix-leg '. ~/.keyring-env; eval "$(printf "\n" | gnome-keyring-daemon --unlock --components=secrets)"; sleep 1; printf old | secret-tool store --label=ci svc ci'
+          restart fenix-leg
+          printf 'n\n' | ex fenix-leg capsule-unlock
+          test "$(lookup fenix-leg)" = "old"
+          restart fenix-leg
+          printf 'y\npw2\npw2\n' | ex fenix-leg capsule-unlock
+          ex fenix-leg capsule-unlock --status
+          test -z "$(lookup fenix-leg)"
+          restart fenix-leg
+          printf 'pw2\n' | ex fenix-leg capsule-unlock
+          docker rm -f fenix-leg
+
+          printf 'pw3\n' >/tmp/keyring_password
+          chmod 644 /tmp/keyring_password
+          up fenix-sec -v /tmp/keyring_password:/run/secrets/keyring_password:ro
+          ex fenix-sec capsule-unlock --status
+          restart fenix-sec
+          ex fenix-sec capsule-unlock --status
+          docker rm -f fenix-sec
 
       - name: Verify capsule-sync (clone, idempotent skip, graceful failure)
         run: |
@@ -235,3 +331,27 @@ jobs:
         with:
           sarif_file: trivy-base.sarif
           category: trivy-base
+
+  verify-example:
+    needs: changes
+    if: needs.changes.outputs.example == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify-example.yml
+
+  ci-ok:
+    if: always()
+    needs: [changes, validate-config, build, verify-example]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed or were skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success | skipped) ;;
+              *) exit 1 ;;
+            esac
+          done
