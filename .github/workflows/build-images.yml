@@ -9,11 +9,7 @@ on:
       - "LICENSE"
       - ".github/dependabot.yml"
   pull_request:
-    paths-ignore:
-      - "**.md"
-      - "docs/**"
-      - "LICENSE"
-      - ".github/dependabot.yml"
+  workflow_dispatch:
 
 permissions:
   contents: read
@@ -23,7 +19,48 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.diff.outputs.code }}
+      example: ${{ steps.diff.outputs.example }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Classify changed files
+        id: diff
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          set -eu
+          if [ "$EVENT" != "pull_request" ]; then
+            echo "code=true" >>"$GITHUB_OUTPUT"
+            echo "example=false" >>"$GITHUB_OUTPUT"
+            exit 0
+          fi
+          files="$(git diff --name-only "$BASE" HEAD)"
+          printf '%s\n' "$files"
+          code=false
+          example=false
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              *.md | docs/* | LICENSE | .github/dependabot.yml) ;;
+              *) code=true ;;
+            esac
+            case "$f" in
+              example/* | base/* | Dockerfile | extra-tools.sh | build-images.sh | .github/workflows/build-images.yml | .github/workflows/verify-example.yml) example=true ;;
+            esac
+          done <<<"$files"
+          echo "code=$code" >>"$GITHUB_OUTPUT"
+          echo "example=$example" >>"$GITHUB_OUTPUT"
+
   validate-config:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -40,6 +77,17 @@ jobs:
           mise trust mise.toml
           mise config get --file mise.toml >/dev/null
           mise ls --current >/dev/null
+          if grep -nE '=[[:space:]]*"latest"' mise.toml; then
+            echo "pin every [tools] version" >&2
+            exit 1
+          fi
+
+      - name: Check example mise.lock is current
+        run: |
+          set -ex
+          cd example
+          mise lock
+          git diff --exit-code mise.lock
 
   build:
     needs: validate-config
@@ -282,3 +330,27 @@ jobs:
         with:
           sarif_file: trivy-base.sarif
           category: trivy-base
+
+  verify-example:
+    needs: changes
+    if: needs.changes.outputs.example == 'true'
+    permissions:
+      contents: read
+    uses: ./.github/workflows/verify-example.yml
+
+  ci-ok:
+    if: always()
+    needs: [changes, validate-config, build, verify-example]
+    runs-on: ubuntu-latest
+    steps:
+      - name: All required jobs passed or were skipped
+        env:
+          RESULTS: ${{ join(needs.*.result, ' ') }}
+        run: |
+          echo "results: $RESULTS"
+          for r in $RESULTS; do
+            case "$r" in
+              success | skipped) ;;
+              *) exit 1 ;;
+            esac
+          done

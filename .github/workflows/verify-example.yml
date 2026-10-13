@@ -4,14 +4,7 @@ on:
   workflow_dispatch:
   schedule:
     - cron: "0 6 * * 1"
-  pull_request:
-    paths:
-      - "example/**"
-      - "Dockerfile"
-      - "base/**"
-      - "extra-tools.sh"
-      - "build-images.sh"
-      - ".github/workflows/verify-example.yml"
+  workflow_call:
 
 permissions:
   contents: read
@@ -65,6 +58,7 @@ jobs:
             dev bash -lc '
             set -ex
             mise trust "$HOME/mise.toml"
+            test -s "$HOME/mise.lock"
             eval "$(mise activate bash)"
             mise ls --current
             # Retry to absorb transient registry/proxy timeouts (e.g.
