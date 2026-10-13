@@ -51,7 +51,8 @@ pre-commit (`shellcheck`, `shfmt`, `hadolint`) and gitleaks for secrets.
   build time, and the weekly scheduled no-cache rebuild scans for newly
   disclosed base CVEs. Rebuild locally to apply the patches it flags.
 - mise is pinned and checksum-verified before use.
-- GitHub Actions are pinned; workflows use least-privilege permissions.
+- GitHub Actions are pinned to commit SHAs (updated by Dependabot); workflows
+  use least-privilege permissions.
 
 ## Reporting a vulnerability
 
