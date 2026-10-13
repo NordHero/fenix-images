@@ -337,6 +337,7 @@ jobs:
     if: needs.changes.outputs.example == 'true'
     permissions:
       contents: read
+      security-events: write
     uses: ./.github/workflows/verify-example.yml
 
   ci-ok:

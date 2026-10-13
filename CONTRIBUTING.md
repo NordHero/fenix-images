@@ -30,7 +30,8 @@ pre-commit run --all-files         # one-off full sweep
 - `build`: builds the image; asserts contents, the entrypoint, the keyring
   password flows, `capsule-sync`, AWS seeding, provisioning of one `[tools]`
   and one `EXTRA_TOOLS` package; Trivy scan (HIGH/CRITICAL).
-- `verify-example`: runs the example capsule and installs its full toolset.
+- `verify-example`: runs the example capsule, installs its full toolset, and
+  Trivy-scans the installed tools (HIGH/CRITICAL).
 - `ci-ok`: always runs and passes only when every job above passed or was
   skipped. Jobs are skipped by path: docs-only changes skip all of them;
   `verify-example` runs only when the image or example changes. `ci-ok` is the
