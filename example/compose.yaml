@@ -10,7 +10,9 @@ services:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
       - ./mise.lock:/home/dev/mise.lock:ro
-      - ./.mise/locks:/home/dev/.mise/locks:ro
+      # If your capsule uses pypi: tools, also mount their hash-locked uv
+      # lockfiles so installs are reproducible and checksum-verified:
+      # - ./.mise/locks:/home/dev/.mise/locks:ro
       # Welcome text, option 2 (rich): mount a plain text file, printed
       # verbatim at login (never executed). Multi-line is fine.
       # - ./welcome.txt:/home/dev/.capsule-welcome:ro
@@ -34,7 +36,7 @@ services:
       GIT_USER_NAME: "Ada Lovelace"
       GIT_USER_EMAIL: "ada@example.com"
       # Welcome text, option 1 (simple): a one-line banner shown at login.
-      CAPSULE_WELCOME: "Prod-adjacent env — do NOT run terraform apply here."
+      CAPSULE_WELCOME: "Example capsule — a minimal, declarative dev environment."
       # Repos, option 1 (simple): space-separated owner/repo cloned into
       # ~/workspace by `capsule-sync` (run it after `gh auth login`).
       # CAPSULE_REPOS: "NordHero/fenix-images"

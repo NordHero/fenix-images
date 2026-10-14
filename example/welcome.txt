@@ -1,7 +1,7 @@
 Welcome to the example capsule.
 A declarative, encapsulated dev environment.
 
-- Tools are provisioned from mise.toml
+- Tools are provisioned from mise.toml (this example declares just uv)
 - Auth lives in the home volume (run: gh auth login)
 - This text comes from ./welcome.txt
 

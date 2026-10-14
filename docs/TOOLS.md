@@ -69,18 +69,23 @@ exists. See [`SECURITY.md`](../SECURITY.md).
 
 - Pin every version in `[tools]`; avoid `"latest"`.
 - Run `mise lock` next to `mise.toml` after any change and commit `mise.lock`
-  and `.mise/locks/`. The example locks `linux-x64` and `linux-arm64`; mise
-  keeps those platforms on re-runs. A `pypi:` entry needs a Python interpreter
-  on `PATH` while locking.
-- Mount `mise.lock` and `.mise/locks/` beside `mise.toml` (see
+  (and `.mise/locks/` if you use `pypi:` tools). mise keeps the locked
+  platforms (e.g. `linux-x64`, `linux-arm64`) on re-runs. A `pypi:` entry needs
+  a Python interpreter on `PATH` while locking.
+- Mount `mise.lock` beside `mise.toml` (and `.mise/locks/` when present; see
   [`example/compose.yaml`](../example/compose.yaml)). mise then installs the
   locked versions and rejects a download whose checksum differs from the lock;
   a `pypi:` tool fails to install without its `.mise/locks/` entry. Locked
   `pypi:` installs never build from source, so every dependency needs a wheel
-  for the configured `python`; the example uses 3.14 for that reason.
+  for the configured `python`.
 - The lock records checksums for registry and `aqua:` tools. Each `pypi:` tool
   gets a hash-locked uv lockfile covering all its dependencies in
   `.mise/locks/`. `go:` modules are verified by the Go checksum database at
   install. `awscli`, `gcloud` and `ubi:` entries are pinned by version only.
-- CI fails when `example/mise.lock` or `example/.mise/locks/` is out of date.
+- CI fails when `example/mise.lock` (or `example/.mise/locks/`, when the
+  example uses `pypi:` tools) is out of date.
 - Changing a version re-provisions that tool on the next container start.
+
+> The shipped `example/mise.toml` is intentionally minimal (just `uv`), so it
+> only has a `mise.lock`. The locking rules above apply when you add `pypi:`,
+> `go:`, or other backends to your own capsules.

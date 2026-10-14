@@ -51,7 +51,7 @@ jobs:
           done
           test "$(docker inspect -f '{{.State.Running}}' "$cid")" = "true"
 
-      - name: Install the full declared toolset
+      - name: Install the declared toolset
         working-directory: example
         run: |
           set -ex
@@ -64,8 +64,8 @@ jobs:
             test -s "$HOME/mise.lock"
             eval "$(mise activate bash)"
             mise ls --current
-            # Retry to absorb transient registry/proxy timeouts (e.g.
-            # proxy.golang.org for go: backends); mise install is idempotent.
+            # Retry to absorb transient registry/proxy timeouts; mise install
+            # is idempotent.
             n=0
             until mise install --yes; do
               n=$((n+1))
@@ -73,15 +73,6 @@ jobs:
               echo "mise install attempt $n failed; retrying"
               sleep 10
             done
-          '
-
-      - name: Provision EXTRA_TOOLS (no mise backend)
-        working-directory: example
-        run: |
-          set -ex
-          docker compose exec -T dev bash -lc '
-            set -ex
-            extra-tools.sh
           '
 
       - name: Assert every declared tool resolves and runs
@@ -97,36 +88,8 @@ jobs:
             mise ls --current --missing | tee /tmp/missing.txt
             test ! -s /tmp/missing.txt
 
-            # Pinned language versions must match exactly.
-            go version | grep -q "go1.27.2"
-            python --version 2>&1 | grep -q "3.14.8"
-
-            # Smoke-run a representative tool from each category.
-            gopls version
-            staticcheck --version
-            golangci-lint version
-            goreleaser --version
-            pre-commit --version
-            prek --version
-            terraform version
-            tofu version
-            terragrunt --version
-            kubectl version --client
-            argocd version --client
-            aws --version
-            az version
-            gcloud --version
+            # Smoke-run the declared tool.
             uv --version
-          '
-
-      - name: Assert EXTRA_TOOLS installed
-        working-directory: example
-        run: |
-          set -ex
-          docker compose exec -T dev bash -lc '
-            set -ex
-            command -v kiro-cli
-            kiro-cli --version
           '
 
       - name: Copy installed tools out of the home volume

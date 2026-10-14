@@ -45,10 +45,11 @@ and reference that local image from their capsules. No image is published.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
 - `example/` — the shipped example capsule (`compose.yaml` + `mise.toml` +
-  `mise.lock` + `.mise/locks/`). It
+  `mise.lock`). It
   is the canonical default: the reference used while developing the image and
-  the target of CI's config validation. `example/mise.toml` is the extensive
-  default tool list; keep it authoritative.
+  the target of CI's config validation. `example/mise.toml` is intentionally
+  minimal (a single declared tool); keep it simple — richer toolsets belong in
+  consumers' own capsules, not here.
 - `docs/` — human depth: `DESIGN.md` (runtime behavior), `TOOLS.md` (declaring
   tools in `mise.toml`).
 - `.github/workflows/` — `build-images.yml` (PR/main: path classification,
