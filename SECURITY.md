@@ -5,7 +5,7 @@
 This repo builds a development base image; it must stay **secret-free**. No
 passwords, tokens, or credentials are committed, and none are baked into the
 image. All sign-ins are manual and performed by the user at runtime inside a
-capsule (`gh auth login`, `gcloud auth login`, `aws sso login`, `az login`).
+capsule (e.g. `gh auth login`, `aws sso login`, or any other CLI you declare).
 Credentials live in the capsule's home volume (`/home/dev`), never in the image
 or this repository.
 
@@ -17,7 +17,7 @@ is stored:
 | Credential | Stored in | Protected by |
 |---|---|---|
 | `gh` token | gnome-keyring in the home volume | keyring password + host disk encryption |
-| `gcloud`, `aws`, `az` credentials | files in the home volume | host disk encryption only |
+| other CLI credentials (e.g. `~/.aws`) | files in the home volume | host disk encryption only |
 | keyring password file (optional) | the host | host file permissions + disk encryption |
 
 The keyring password (see
@@ -67,9 +67,10 @@ mise and its backends are the trust point for `[tools]`:
   (`mise lock`): it records checksums for registry and `aqua:` tools, and mise
   rejects a download that does not match. (Other backends lock differently:
   `pypi:` tools get a hash-locked uv lockfile under `.mise/locks/`, `go:`
-  modules are verified by the Go checksum database, and `awscli`/`gcloud`/`ubi:`
-  entries are pinned by version only.) The shipped `example/` is a clean
-  template (`mise.toml` only) — lock it in your own copy.
+  modules are verified by the Go checksum database, and other version-only
+  backends (`ubi:`, some registry tools) are pinned by version only.) The
+  shipped `example/` is a clean template (`mise.toml` only) — lock it in your
+  own copy.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
 installed by the vendor's own script. The base image supports `kiro-cli`, whose

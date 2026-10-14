@@ -12,5 +12,17 @@ services:
     environment:
       CAPSULE_NAME: "example"
       CAPSULE_TRUST_MISE: "1"
+      # Optional: on a fresh volume the entrypoint seeds ~/.aws/config from
+      # these non-secret identifiers, so you only run `aws sso login` (no
+      # `aws configure sso`). All values below are placeholders — replace them
+      # with your own; nothing here is a secret, and tokens still come from
+      # `aws sso login` into the home volume. A mounted ~/.aws/config takes
+      # precedence and makes this a no-op. Leave these unset to skip seeding.
+      # AWS_SSO_START_URL: "https://my-sso.awsapps.com/start"
+      # AWS_SSO_REGION: "eu-west-1"
+      # AWS_SSO_SESSION: "my-sso"
+      # AWS_SSO_ACCOUNT_ID: "000000000000"
+      # AWS_SSO_ROLE_NAME: "MyRole"
+      # AWS_PROFILE: "default"
 volumes:
   example-home:

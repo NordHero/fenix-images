@@ -27,21 +27,22 @@ For tools not in the registry, name the backend explicitly:
 [tools]
 "go:golang.org/x/tools/gopls" = "0.23.0"      # go install
 "ubi:j178/prek" = "0.5.5"                      # GitHub-release binary
-"pypi:azure-cli" = "2.67.0"                    # PyPI package (az)
-"aqua:github/copilot-cli" = "1.0.95"           # aqua registry
+"pypi:ansible" = "11.1.0"                      # PyPI package
+"aqua:cli/cli" = "2.63.0"                      # aqua registry
 ```
 
 - `go:` installs `go install`-style tools.
 - `ubi:` installs binaries from GitHub releases.
-- `pypi:` installs Python packages (e.g. `azure-cli` -> `az`).
-- `aqua:` installs from the aqua registry (e.g. GitHub Copilot CLI).
+- `pypi:` installs Python packages.
+- `aqua:` installs from the aqua registry.
 
-Most cloud CLIs are available through a backend, so they belong in `[tools]`,
-not in `EXTRA_TOOLS`. For example gcloud, including the GKE auth plugin:
+Many CLIs are available through a backend, so they belong in `[tools]`, not in
+`EXTRA_TOOLS`. Tools can also be declared in table form when you need to pass
+extra options:
 
 ```toml
 [tools]
-gcloud = { version = "497.0.0", components = ["gke-gcloud-auth-plugin"] }
+node = { version = "22.11.0" }
 ```
 
 Tools declared via a backend are resolved, verified, and lockable by mise just
@@ -80,7 +81,7 @@ exists. See [`SECURITY.md`](../SECURITY.md).
 - The lock records checksums for registry and `aqua:` tools. Each `pypi:` tool
   gets a hash-locked uv lockfile covering all its dependencies in
   `.mise/locks/`. `go:` modules are verified by the Go checksum database at
-  install. `awscli`, `gcloud` and `ubi:` entries are pinned by version only.
+  install. Version-only backends such as `ubi:` are pinned by version only.
 - Changing a version re-provisions that tool on the next container start.
 
 > The shipped `example/` is a clean template — `mise.toml` only, no committed
