@@ -80,10 +80,9 @@ For AWS, configure the CLI two ways (both non-secret; tokens still come from
 - **Env (simple):** set the `AWS_SSO_*` identifiers in `compose.yaml`. On a
   fresh volume the entrypoint seeds `~/.aws/config`, so you only run
   `aws sso login` — no `aws configure sso`.
-- **Mounted file:** mount a prewritten `~/.aws/config` read-only at
-  `/home/dev/.aws/config` (see [`example/aws-config`](example/aws-config)). This
-  supports multiple profiles/sso-sessions and takes precedence over the
-  `AWS_SSO_*` env seeding.
+- **Mounted file:** mount your own prewritten `~/.aws/config` read-only at
+  `/home/dev/.aws/config`. This supports multiple profiles/sso-sessions and
+  takes precedence over the `AWS_SSO_*` env seeding.
 
 See [`example/compose.yaml`](example/compose.yaml) for both.
 
