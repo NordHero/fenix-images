@@ -1,5 +1,12 @@
 # Changelog
 
+## [3.1.0](https://github.com/NordHero/fenix-images/compare/v3.0.0...v3.1.0) (2026-10-14)
+
+
+### Features
+
+* daily mise version check PR and supply-chain disclaimer ([#15](https://github.com/NordHero/fenix-images/issues/15)) ([19a8f38](https://github.com/NordHero/fenix-images/commit/19a8f38b6abc815a7e1f6f88d1d3c012a63e391a))
+
 ## [3.0.0](https://github.com/NordHero/fenix-images/compare/v2.1.0...v3.0.0) (2026-10-13)
 
 
