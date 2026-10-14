@@ -63,12 +63,13 @@ Running `mise install` by hand also trusts the config (mise's own behaviour).
 mise and its backends are the trust point for `[tools]`:
 
 - mise itself is installed at a pinned version, SHA-256-verified at build time.
-- `example/mise.toml` pins its version. `example/mise.lock` records checksums
-  for registry and `aqua:` tools; mise rejects a download that does not match.
-  (Other backends lock differently: `pypi:` tools get a hash-locked uv
-  lockfile under `.mise/locks/`, `go:` modules are verified by the Go checksum
-  database, and `awscli`/`gcloud`/`ubi:` entries are pinned by version only.)
-  CI fails when the lock is out of date.
+- Pin every version in a capsule's `mise.toml` and commit a `mise.lock`
+  (`mise lock`): it records checksums for registry and `aqua:` tools, and mise
+  rejects a download that does not match. (Other backends lock differently:
+  `pypi:` tools get a hash-locked uv lockfile under `.mise/locks/`, `go:`
+  modules are verified by the Go checksum database, and `awscli`/`gcloud`/`ubi:`
+  entries are pinned by version only.) The shipped `example/` is a clean
+  template (`mise.toml` only) — lock it in your own copy.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
 installed by the vendor's own script. The base image supports `kiro-cli`, whose

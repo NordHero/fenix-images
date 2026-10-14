@@ -82,17 +82,6 @@ jobs:
             exit 1
           fi
 
-      - name: Check example mise.lock is current
-        run: |
-          set -ex
-          cd example
-          mise lock
-          # Fail if `mise lock` produced any change. The example may or may not
-          # have a .mise/locks tree (only pypi: tools create one), so avoid
-          # naming paths that might not exist; check the whole folder instead.
-          git diff --exit-code mise.lock
-          test -z "$(git status --porcelain mise.lock .mise)"
-
   build:
     needs: validate-config
     runs-on: ubuntu-latest
