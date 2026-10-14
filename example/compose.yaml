@@ -9,7 +9,6 @@ services:
     volumes:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
-      - ./mise.lock:/home/dev/mise.lock:ro
     environment:
       CAPSULE_NAME: "example"
       CAPSULE_TRUST_MISE: "1"

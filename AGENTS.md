@@ -44,10 +44,9 @@ and reference that local image from their capsules. No image is published.
   (azure-cli, copilot, gcloud) are declared in `[tools]` via mise backends.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
-- `example/` — the shipped example capsule (`compose.yaml` + `mise.toml` +
-  `mise.lock`). It
-  is the canonical default: the reference used while developing the image and
-  the target of CI's config validation. `example/mise.toml` is intentionally
+- `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It
+  is the canonical default: a clean, copy-me template and the reference CI
+  boots to confirm the model works. `example/mise.toml` is intentionally
   minimal (a single declared tool); keep it simple — richer toolsets belong in
   consumers' own capsules, not here.
 - `docs/` — human depth: `DESIGN.md` (runtime behavior), `TOOLS.md` (declaring
