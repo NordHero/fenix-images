@@ -30,12 +30,11 @@ pre-commit run --all-files         # one-off full sweep
 **CI** (`.github/workflows/build-images.yml`):
 
 - `validate-config`: example `mise.toml` parses, has no `"latest"`, and
-  `example/mise.lock` and `example/.mise/locks/` are current (`mise lock`
-  produces no diff).
+  `example/mise.lock` is current (`mise lock` produces no diff).
 - `build`: builds the image; asserts contents, the entrypoint, the keyring
   password flows, `capsule-sync`, AWS seeding, provisioning of one `[tools]`
   and one `EXTRA_TOOLS` package; Trivy scan (HIGH/CRITICAL).
-- `verify-example`: runs the example capsule, installs its full toolset, and
+- `verify-example`: runs the example capsule, installs its declared tools, and
   Trivy-scans the installed tools (HIGH/CRITICAL).
 - `ci-ok`: always runs and passes only when every job above passed or was
   skipped. Jobs are skipped by path: docs-only changes skip all of them;

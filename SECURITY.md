@@ -63,15 +63,15 @@ Running `mise install` by hand also trusts the config (mise's own behaviour).
 mise and its backends are the trust point for `[tools]`:
 
 - mise itself is installed at a pinned version, SHA-256-verified at build time.
-- `example/mise.toml` pins every version. `example/mise.lock` records
-  checksums for registry and `aqua:` tools, and `example/.mise/locks/` holds a
-  hash-locked uv lockfile per `pypi:` tool (the package and all its
-  dependencies); mise rejects a download that does not match. `go:` modules
-  are verified by the Go checksum database. `awscli`, `gcloud` and `ubi:`
-  entries are pinned by version only. CI fails when the lock is out of date.
+- `example/mise.toml` pins its version. `example/mise.lock` records checksums
+  for registry and `aqua:` tools; mise rejects a download that does not match.
+  (Other backends lock differently: `pypi:` tools get a hash-locked uv
+  lockfile under `.mise/locks/`, `go:` modules are verified by the Go checksum
+  database, and `awscli`/`gcloud`/`ubi:` entries are pinned by version only.)
+  CI fails when the lock is out of date.
 
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
-installed by the vendor's own script. Currently this is only `kiro-cli`, whose
+installed by the vendor's own script. The base image supports `kiro-cli`, whose
 installer verifies its own checksums but is not verified by mise or this repo.
 Treat it as you would any `curl | bash` vendor installer; prefer a `[tools]`
 backend whenever one exists.
@@ -98,7 +98,7 @@ and library vulnerabilities that have a fix (`ignore-unfixed`). Results from
 `main` are uploaded to GitHub code scanning.
 
 The tools mise installs live in the home volume, not the image.
-`verify-example` installs the example capsule's full toolset, copies
+`verify-example` installs the example capsule's declared tools, copies
 `~/.local/share/mise/installs` and `~/.local/bin` out of the volume and scans
 them with Trivy (`rootfs`, same severity filter). Results from `main`, the
 weekly run and manual runs are uploaded under the `trivy-mise-tools`

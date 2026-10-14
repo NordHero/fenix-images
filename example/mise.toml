@@ -1,39 +1,12 @@
-# Canonical default tool manifest for a capsule. Copy this folder as a starting
-# point, then trim or extend the lists below.
+# A capsule declares its tools here. On first boot, mise installs them into
+# the capsule's home volume and pins exact versions in mise.lock.
+#
+# This example is intentionally minimal — just enough to show the model: one
+# declared tool, installed and locked. Richer, real-world toolsets (languages,
+# IaC, cloud CLIs, Kubernetes, coding agents via EXTRA_TOOLS) belong in your
+# own capsule definitions, not in this public example.
 
 [tools]
-# Languages
-go = "1.27.2"
-python = "3.14.8"
-
-# Go dev tooling
-"go:golang.org/x/tools/gopls" = "0.23.0"
-"go:golang.org/x/tools/cmd/goimports" = "0.52.0"
-"go:honnef.co/go/tools/cmd/staticcheck" = "0.8.1"
-golangci-lint = "2.14.0"
-goreleaser = "2.18.2"
-
-# Pre-commit / hooks
-pre-commit = "4.6.2"
-"ubi:j178/prek" = "0.5.5"
-
-# Infrastructure as code
-terraform = "1.16.5"
-opentofu = "1.13.1"
-terragrunt = "0.69.9"
-
-# Kubernetes
-kubectl = "1.37.1"
-argocd = "2.13.2"
-
-# Cloud CLIs (installed through mise backends; verified + lockable)
-awscli = "2.37.9"
-"pypi:azure-cli" = "2.67.0"
-gcloud = { version = "497.0.0", components = ["gke-gcloud-auth-plugin"] }
-"aqua:github/copilot-cli" = "1.0.95"
-
-# Misc
+# uv manages Python itself (`uv python install`, `uv run`), so a single entry
+# covers the common Python workflow without pinning a separate interpreter.
 uv = "0.13.0"
-
-[env]
-EXTRA_TOOLS = "kiro-cli"
