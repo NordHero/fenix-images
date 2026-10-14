@@ -40,8 +40,8 @@ and reference that local image from their capsules. No image is published.
   `CAPSULE_INFO` env, and OCI image labels. `capsule-sync` clones repos declared
   in `CAPSULE_REPOS` / `~/.capsule-repos` idempotently via the gh credential helper.
 - `extra-tools.sh` — installs tools with no mise backend (currently only
-  `kiro-cli`); reads `EXTRA_TOOLS` from the mounted `mise.toml`. Cloud CLIs
-  (azure-cli, copilot, gcloud) are declared in `[tools]` via mise backends.
+  `kiro-cli`); reads `EXTRA_TOOLS` from the mounted `mise.toml`. Tools with a
+  mise backend are declared in `[tools]` instead.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
 - `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It

@@ -66,26 +66,6 @@ docker compose exec dev zsh   # work inside the capsule
 docker compose down           # stop; the volume (your environment) is preserved
 ```
 
-The first shell after each start asks for the keyring password (on a fresh
-volume you set it), which encrypts stored tokens such as `gh`'s. Open more
-shells in the same running capsule with another `docker compose exec dev zsh`.
-Inside, authenticate the CLIs you declared (e.g. `gh auth login`; and once you
-add them to `mise.toml`, `gcloud auth login`, `aws sso login`, `az login`) —
-tokens persist in the home volume, never in the image or repo. See [Keyring password](docs/DESIGN.md#credentials-and-the-keyring)
-for unattended unlock and volumes from older images.
-
-For AWS, configure the CLI two ways (both non-secret; tokens still come from
-`aws sso login` into the home volume):
-
-- **Env (simple):** set the `AWS_SSO_*` identifiers in `compose.yaml`. On a
-  fresh volume the entrypoint seeds `~/.aws/config`, so you only run
-  `aws sso login` — no `aws configure sso`.
-- **Mounted file:** mount your own prewritten `~/.aws/config` read-only at
-  `/home/dev/.aws/config`. This supports multiple profiles/sso-sessions and
-  takes precedence over the `AWS_SSO_*` env seeding.
-
-See [`example/compose.yaml`](example/compose.yaml) for both.
-
 ### Clone your repos
 
 Declare the repos a capsule works on with `CAPSULE_REPOS` in `compose.yaml`

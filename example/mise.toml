@@ -3,8 +3,8 @@
 #
 # This example is intentionally minimal — just enough to show the model: one
 # declared tool, installed and locked. Richer, real-world toolsets (languages,
-# IaC, cloud CLIs, Kubernetes, coding agents via EXTRA_TOOLS) belong in your
-# own capsule definitions, not in this public example.
+# IaC, CLIs, coding agents via EXTRA_TOOLS) belong in your own capsule
+# definitions, not in this public example.
 
 [tools]
 # uv manages Python itself (`uv python install`, `uv run`), so a single entry
