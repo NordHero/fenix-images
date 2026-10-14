@@ -99,7 +99,9 @@ jobs:
           cid="$(docker compose ps -q dev)"
           mkdir -p "$RUNNER_TEMP/mise-tools"
           docker cp "$cid:/home/dev/.local/share/mise/installs" "$RUNNER_TEMP/mise-tools/installs"
-          docker cp "$cid:/home/dev/.local/bin" "$RUNNER_TEMP/mise-tools/bin"
+          # ~/.local/bin only exists if a tool installs into it (e.g. an
+          # EXTRA_TOOLS vendor install); the minimal uv-only example has none.
+          docker cp "$cid:/home/dev/.local/bin" "$RUNNER_TEMP/mise-tools/bin" || true
           du -sh "$RUNNER_TEMP/mise-tools"
 
       - name: Trivy scan (mise tools)
