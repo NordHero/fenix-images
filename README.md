@@ -6,6 +6,10 @@ You don't build a custom image per project — you declare the tools you want in
 `mise.toml`, and they are installed into the capsule's home volume on first
 start.
 
+> **Note:** mise is a supply-chain dependency you opt into — mise and its
+> backends become a trust anchor for everything a capsule installs. Weigh that
+> for your threat model.
+
 It is self-contained — usable with nothing but `docker compose`.
 
 A **capsule** is an encapsulated development environment definition: a folder
@@ -113,6 +117,9 @@ self-contained.
 - Not a registry-first flow — the documented path is build-it-yourself
   (`fenix-base:local`). No image is published for consumption.
 - Not a host bootstrapper — it assumes Docker is already set up on the host.
+- Not locked to mise — the way of working (minimal base + declarative, pinned
+  per-capsule tools) is the point, not the tool. You can always build your own
+  image without it.
 - Not a place for project or customer content, cloud/AI work, or secrets.
 
 ## Developing this image

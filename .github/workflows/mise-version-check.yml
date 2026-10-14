@@ -1,0 +1,40 @@
+name: mise-version-check
+
+# Daily check that the Dockerfile's pinned MISE_VERSION matches the latest mise
+# release. When it lags, scripts/bump-mise.sh maintains a SINGLE self-updating
+# pull request on a fixed branch: a newer release before merge rewrites the same
+# branch/PR rather than opening another, so stale bump PRs never pile up.
+
+on:
+  schedule:
+    - cron: "17 5 * * *" # daily, 05:17 UTC
+  workflow_dispatch:
+    inputs:
+      check_only:
+        description: "Only report the comparison; do not open/update a PR"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mise-version-check
+  cancel-in-progress: false
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # push the fixed bump branch
+      pull-requests: write # open/update the single bump PR
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # need the base branch to reset the bump branch
+
+      - name: Check latest mise release and maintain the bump PR
+        env:
+          GH_TOKEN: ${{ github.token }}
+          CHECK_ONLY: ${{ (github.event_name == 'workflow_dispatch' && inputs.check_only) && '1' || '' }}
+        run: ./scripts/bump-mise.sh

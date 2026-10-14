@@ -113,6 +113,11 @@ with `./build-images.sh` to pick up the patches a scan flags.
 `shellcheck`, `shfmt`, `hadolint` and `gitleaks` run locally as pre-commit
 hooks (`.pre-commit-config.yaml`), not in CI.
 
+A daily **mise version check** (`.github/workflows/mise-version-check.yml`)
+compares the pinned `MISE_VERSION` against the latest mise release and maintains
+a single self-updating pull request to bump it, so security releases are
+surfaced promptly.
+
 ## Reporting a vulnerability
 
 Open a private security advisory via GitHub's "Report a vulnerability" on this
