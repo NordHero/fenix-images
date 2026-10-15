@@ -8,7 +8,9 @@ start.
 
 > **Note:** mise is a supply-chain dependency you opt into — mise and its
 > backends become a trust anchor for everything a capsule installs. Weigh that
-> for your threat model.
+> for your threat model. You can always build and use your own image instead:
+> adapt the [`Dockerfile`](Dockerfile), or point `image:` in a capsule's
+> `compose.yaml` at any image you build.
 
 It is self-contained — usable with nothing but `docker compose`.
 

@@ -57,7 +57,10 @@ and reference that local image from their capsules. No image is published.
   `release-please.yml` (version PRs + tags/CHANGELOG; dispatches CI on the
   release branch),
   `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish),
-  `close-external-prs.yml` (closes fork PRs from non-members).
+  `close-external-prs.yml` (closes fork PRs from non-members),
+  `mise-version-check.yml` (daily; runs `.github/scripts/bump-mise.sh` to keep
+  one self-updating `MISE_VERSION` bump PR).
+- `.github/scripts/` — CI-only helper scripts (`bump-mise.sh`).
 
 There is no root `compose.yaml` or root `mise.toml`; the example capsule is the
 single reference.
