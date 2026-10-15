@@ -2,6 +2,8 @@
 
 How the base image and a capsule behave at runtime. For the compact overview
 see [`README.md`](../README.md); for declaring tools see [`TOOLS.md`](TOOLS.md).
+All supported variables are listed under
+[Environment variables](#environment-variables).
 
 ## Base image
 
@@ -195,6 +197,105 @@ come from `aws sso login` into the home volume, never from the repo or image.
   `[ ! -f ~/.aws/config ]`, a mounted config takes precedence and the env path
   is a no-op. This is the natural source of truth when you need multiple
   profiles or sso-sessions; keep it non-secret (identifiers only).
+
+## Environment variables
+
+Every variable the image and its scripts read. **When** says when a value takes
+effect: **start** = container start (entrypoint), **shell** = each interactive
+shell, **command** = when that command runs. Values set under `environment:` in
+`compose.yaml` apply after `docker compose up -d` recreates the container.
+
+### Capsule settings (`compose.yaml`)
+
+**Identity and shell**
+
+| Variable | Default | When | Effect |
+|---|---|---|---|
+| `CAPSULE_NAME` | container hostname | shell | Label in the window title (`[capsule:<name>] <dir>`) and the login banner. |
+| `CAPSULE_WELCOME` | unset | shell | One-line login banner. Ignored when `~/.capsule-welcome` exists. Control characters except tab and newline are stripped. |
+| `CAPSULE_KEYRING_PROMPT` | `1` | shell | `0` skips running `capsule-unlock` at shell start. |
+| `CAPSULE_TERM_COLORS` | value of `CAPSULE_ITERM_PROFILE_SWITCH` | shell | `0` disables the portable Dracula color switch (OSC 4/10/11/...). |
+| `CAPSULE_ITERM_PROFILE_SWITCH` | `1` | shell | `0` disables the iTerm2 profile switch; also disables the color switch unless `CAPSULE_TERM_COLORS` is set. |
+| `ITERM_DEVCONTAINER_PROFILE` | `fenix-devcontainer` | shell | iTerm2 profile selected on shell start. |
+| `ITERM_DEFAULT_PROFILE` | `fenix` | shell | iTerm2 profile restored on shell exit. |
+| `GIT_USER_NAME` | unset | start | Written to `git config --global user.name` on every start. |
+| `GIT_USER_EMAIL` | unset | start | Written to `git config --global user.email` on every start. |
+
+**Provisioning**
+
+| Variable | Default | When | Effect |
+|---|---|---|---|
+| `CAPSULE_TRUST_MISE` | unset | start | `1` trusts `~/mise.toml` before provisioning. Any other value leaves trust to a manual `mise trust`. |
+| `EXTRA_TOOLS_STRICT` | `0` | start, command | `1` makes `extra-tools.sh` exit non-zero when a tool fails. `provision.sh` reports failed tools either way. |
+| `EXTRA_TOOLS` | unset | start, command | Space-separated `tool[@version]` list. Set it in `mise.toml` under `[env]`, not in `compose.yaml`: `provision.sh` reads it from the file and ignores the container value. See [`TOOLS.md`](TOOLS.md). |
+
+mise's own `MISE_*` variables pass through to mise unchanged.
+
+**Repositories** (see [Repositories](#repositories))
+
+| Variable | Default | When | Effect |
+|---|---|---|---|
+| `CAPSULE_REPOS` | unset | start, unlock, command | Space-separated `owner/repo` list cloned by `capsule-sync`. |
+| `CAPSULE_REPOS_FILE` | `~/.capsule-repos` | command | Manifest path read by `capsule-sync`. Automatic runs at start and after unlock trigger only when `CAPSULE_REPOS` is set or `~/.capsule-repos` exists; with another path, run `capsule-sync` manually. |
+| `CAPSULE_WORKSPACE` | `~/workspace` | command | Directory `capsule-sync` clones into. |
+
+**Keyring** (see [Credentials and the keyring](#credentials-and-the-keyring))
+
+| Variable | Default | When | Effect |
+|---|---|---|---|
+| `KEYRING_PASSWORD_FILE` | `/run/secrets/keyring_password` | start | If the file exists, the keyring is unlocked with its content. |
+
+**AWS config seeding** (see [Credentials and the keyring](#credentials-and-the-keyring)).
+Applied at start only when both required variables are set and
+`~/.aws/config` does not exist.
+
+| Variable | Default | Effect |
+|---|---|---|
+| `AWS_SSO_START_URL` | required | `sso_start_url` of the `[sso-session]` block. |
+| `AWS_SSO_REGION` | required | `sso_region`; last fallback for the profile `region`. |
+| `AWS_SSO_SESSION` | `sso` | Name of the `[sso-session]` block. |
+| `AWS_SSO_ACCOUNT_ID` | unset | `sso_account_id` of the profile; omitted when unset. |
+| `AWS_SSO_ROLE_NAME` | unset | `sso_role_name` of the profile; omitted when unset. |
+| `AWS_PROFILE` | `default` | Profile written: `[default]`, otherwise `[profile <name>]`. |
+| `AWS_REGION` | `AWS_DEFAULT_REGION`, then `AWS_SSO_REGION` | Profile `region`. |
+| `AWS_DEFAULT_OUTPUT` | `json` | Profile `output`. |
+
+The AWS CLI itself also reads `AWS_PROFILE`, `AWS_REGION`, and
+`AWS_DEFAULT_OUTPUT` at runtime.
+
+### Set by the image
+
+Not meant to be overridden.
+
+| Variable | Value | Purpose |
+|---|---|---|
+| `CAPSULE_INFO` | `fenix-base <version> (<commit>, built <date>)` | Login banner line and `capsule-info` output (see [Provenance](#provenance)). |
+| `BROWSER` | `true` | Login flows (`gh auth login`, `aws sso login`) do not fail trying to open a browser; open the printed URL on the host. |
+| `LANG`, `LC_ALL` | `en_US.UTF-8` | UTF-8 locale. |
+| `TERM` | `xterm` upgraded to `xterm-256color` | See [Host terminal requirements](#host-terminal-requirements). |
+| `PATH` | mise shims, `~/.local/bin`, `/usr/local/bin` first | Tools installed by mise and `extra-tools.sh` resolve first. |
+| `DEV_USER`, `DEV_UID`, `DEV_GID`, `DEV_HOME` | `dev`, `1000`, `1000`, `/home/dev` | Build-time user layout; changing them at runtime has no effect. |
+| `DEBIAN_FRONTEND` | `noninteractive` | Non-interactive apt during the build. |
+
+The entrypoint writes `DBUS_SESSION_BUS_ADDRESS`, `GNOME_KEYRING_CONTROL`, and
+`SSH_AUTH_SOCK` to `~/.keyring-env`, which shells and the `gh` wrapper source.
+
+### Build
+
+`build-images.sh` reads:
+
+| Variable | Default | Effect |
+|---|---|---|
+| `REGISTRY` | `fenix` | Image name prefix: `<REGISTRY>-base:<TAG>`. |
+| `TAG` | `local` | Image tag. |
+| `IMAGE_VERSION` | `dev` | Build arg; see [Provenance](#provenance). |
+| `SOURCE_COMMIT` | short `git` HEAD, else `unknown` | Build arg; see [Provenance](#provenance). |
+| `BUILD_DATE` | current UTC time | Build arg; see [Provenance](#provenance). |
+
+Pins in the `Dockerfile` are build args with defaults kept in the `Dockerfile`:
+`MISE_VERSION`, `OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT`, and
+`GH_APT_FINGERPRINTS`. `build-images.sh` does not forward them; override with
+`docker build --build-arg NAME=value` (see [Version pinning](#version-pinning)).
 
 ## Version pinning
 

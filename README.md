@@ -89,8 +89,9 @@ dir/branch, mount a manifest at `/home/dev/.capsule-repos` (see
 
 Edit `example/mise.toml` to declare your tools (see
 [`docs/TOOLS.md`](docs/TOOLS.md)) and `compose.yaml` to set `CAPSULE_NAME`, git
-identity, and welcome text. Copy the folder per project to keep each capsule
-self-contained.
+identity, and welcome text. All supported variables are listed in
+[`docs/DESIGN.md`](docs/DESIGN.md#environment-variables). Copy the folder per
+project to keep each capsule self-contained.
 
 ## What this is not
 
