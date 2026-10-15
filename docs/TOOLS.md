@@ -72,7 +72,8 @@ exists. See [`SECURITY.md`](../SECURITY.md).
 - Run `mise lock` next to `mise.toml` after any change and commit `mise.lock`
   (and `.mise/locks/` if you use `pypi:` tools). mise keeps the locked
   platforms (e.g. `linux-x64`, `linux-arm64`) on re-runs. A `pypi:` entry needs
-  a Python interpreter on `PATH` while locking.
+  a Python interpreter on `PATH` while locking; the base image bakes one
+  (`python3` + `python`), so this is satisfied out of the box.
 - Mount `mise.lock` beside `mise.toml` (and `.mise/locks/` when present). mise
   then installs the locked versions and rejects a download whose checksum
   differs from the lock; a `pypi:` tool fails to install without its

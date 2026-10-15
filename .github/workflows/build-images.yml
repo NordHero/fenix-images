@@ -112,6 +112,9 @@ jobs:
             gh --version
             zsh --version
             mise --version
+            python3 --version
+            python --version
+            test "$(readlink -f "$(command -v python)")" = "$(readlink -f "$(command -v python3)")"
             # Local command sandbox backends (Linux): bwrap + socat. Used by
             # bubblewrap-based agent sandboxes (Kiro, Copilot CLI, Claude Code).
             bwrap --version

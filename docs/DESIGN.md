@@ -15,7 +15,11 @@ processes, forwards signals), **mise** (pinned, checksum-verified), and
 `bubblewrap` + `socat` (the Linux backends for agent command sandboxes —
 bubblewrap + seccomp is the shared mechanism used by Kiro, GitHub Copilot CLI
 and Claude Code; installed but not enabled, and the base image ships no sandbox
-policy). No language runtimes or cloud tools are baked in.
+policy). The only language runtime baked in is the distro Python (`python3`
+plus a `python` symlink via `python-is-python3`): a system interpreter many
+tool installers and `pypi:` locking assume on `PATH`. mise still owns pinned,
+per-capsule Python versions; the baked one is the always-present baseline. No
+other language runtimes or cloud tools are baked in.
 
 ## Host terminal requirements
 

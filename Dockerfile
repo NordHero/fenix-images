@@ -21,6 +21,7 @@ RUN apt-get update && apt-get upgrade -y \
       ca-certificates curl gnupg git zsh locales \
       openssh-client \
       unzip tini \
+      python3 python-is-python3 \
       vim nano less \
       bubblewrap socat \
       dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools \
