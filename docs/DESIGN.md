@@ -10,9 +10,10 @@ Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
 network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
 shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
 processes, forwards signals), **mise** (pinned, checksum-verified), and
-`bubblewrap` + `socat` (the Linux backends for Kiro's local command sandbox —
-installed but not enabled; the base image ships no sandbox policy). No
-language runtimes or cloud tools are baked in.
+`bubblewrap` + `socat` (the Linux backends for agent command sandboxes —
+bubblewrap + seccomp is the shared mechanism used by Kiro, GitHub Copilot CLI
+and Claude Code; installed but not enabled, and the base image ships no sandbox
+policy). No language runtimes or cloud tools are baked in.
 
 ## Host terminal requirements
 
