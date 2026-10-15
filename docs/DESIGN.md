@@ -9,7 +9,9 @@ see [`README.md`](../README.md); for declaring tools see [`TOOLS.md`](TOOLS.md).
 Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
 network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
 shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
-processes, forwards signals), and **mise** (pinned, checksum-verified). No
+processes, forwards signals), **mise** (pinned, checksum-verified), and
+`bubblewrap` + `socat` (the Linux backends for Kiro's local command sandbox —
+installed but not enabled; the base image ships no sandbox policy). No
 language runtimes or cloud tools are baked in.
 
 ## Host terminal requirements

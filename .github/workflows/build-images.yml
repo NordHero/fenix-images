@@ -112,6 +112,9 @@ jobs:
             gh --version
             zsh --version
             mise --version
+            # Kiro local command sandbox backends (Linux): bwrap + socat.
+            bwrap --version
+            socat -V >/dev/null
             test -d /opt/devbox-skel/.oh-my-zsh-custom/themes/powerlevel10k
             test -d /opt/devbox-skel/.oh-my-zsh
             test ! -d /usr/local/share/fonts/MesloLGS-NF
