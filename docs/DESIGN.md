@@ -86,7 +86,7 @@ reported instead of hidden. Re-run it any time with `provision.sh`.
 - **Strict mode**: set `EXTRA_TOOLS_STRICT=1` to make `extra-tools.sh` exit
   non-zero when any tool fails (default is non-fatal).
 
-## Prompt, window title, and iTerm2 profile
+## Prompt, window title, and terminal colors
 
 The zsh prompt uses the Powerlevel10k rainbow style. Terminal window and tab
 titles are prefixed with the capsule name and current directory, e.g.
@@ -99,6 +99,15 @@ via an OSC 1337 escape and restores the default on exit. Profile names are set
 with `ITERM_DEVCONTAINER_PROFILE` (default `fenix-devcontainer`) and
 `ITERM_DEFAULT_PROFILE` (default `fenix`); create matching iTerm2 profiles. Set
 `CAPSULE_ITERM_PROFILE_SWITCH=0` to opt out. Other terminals ignore the escape.
+
+The shell also sets the Dracula palette with standard OSC 4/10/11/12/17/19
+escapes and resets it (OSC 104/110/111/112/117/119) on exit, so kitty, GNOME
+Terminal, and other xterm-compatible terminals switch colors without profiles.
+In iTerm2 this matches the default `fenix-devcontainer` profile. Set
+`CAPSULE_TERM_COLORS=0` to opt out (defaults to the
+`CAPSULE_ITERM_PROFILE_SWITCH` value), e.g. when `ITERM_DEVCONTAINER_PROFILE`
+points to a profile with different colors. If the shell is killed rather than
+exited, the colors stay until the terminal resets them.
 
 ## Welcome text
 
