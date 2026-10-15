@@ -22,6 +22,7 @@ RUN apt-get update && apt-get upgrade -y \
       openssh-client \
       unzip tini \
       vim nano less \
+      bubblewrap socat \
       dbus-x11 gnome-keyring libsecret-1-0 libsecret-tools \
     && rm -f /usr/share/dbus-1/services/org.freedesktop.secrets.service \
       /usr/share/dbus-1/services/org.gnome.keyring.service \
