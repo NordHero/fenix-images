@@ -79,6 +79,9 @@ otherwise in docs. See `SECURITY.md`.
 
 ## Conventions
 
+- Every environment variable the image or its scripts read is listed in
+  `docs/DESIGN.md` under "Environment variables"; add or update its row in the
+  same change.
 - Non-root `dev` user (UID/GID 1000); home at `/home/dev`.
 - After changing `example/mise.toml`, run `mise lock` in `example/` and commit
   `mise.lock` and `.mise/locks/`; CI fails on drift. Never use `"latest"`.
