@@ -36,9 +36,10 @@ behavior and [`docs/TOOLS.md`](docs/TOOLS.md) for declaring tools.
 
 ## Get started
 
-Prerequisites: Docker (with the Compose plugin) and git. For the Powerlevel10k
-prompt icons, install a Nerd Font (e.g. MesloLGS NF) on the host and select it
-in your terminal — the image ships no fonts.
+Prerequisites: Docker (with the Compose plugin) and git. The capsule shell's
+look depends on your host terminal: it needs a Nerd Font (e.g. MesloLGS NF),
+which the image does not ship. If icons show as boxes or colors look wrong, see
+[Host terminal requirements](docs/DESIGN.md#host-terminal-requirements).
 
 ### 1. Clone and build the base image
 

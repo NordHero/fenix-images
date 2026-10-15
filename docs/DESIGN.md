@@ -12,10 +12,37 @@ shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
 processes, forwards signals), and **mise** (pinned, checksum-verified). No
 language runtimes or cloud tools are baked in.
 
-**Fonts are a host responsibility.** The image renders no glyphs; the terminal
-emulator on the host does. Install a Nerd Font (e.g. MesloLGS NF) on the host
-and select it in your terminal profile to get the Powerlevel10k icons. The
-image ships no fonts.
+## Host terminal requirements
+
+The image runs the shell; the terminal emulator on the host draws it. For the
+capsule shell to look as intended, the host terminal needs:
+
+| Requirement | Used for | Without it |
+|---|---|---|
+| A Nerd Font installed on the host and selected in the terminal (MesloLGS NF recommended) | Powerlevel10k prompt icons and segment separators | Boxes, question marks, or gaps in the prompt |
+| UTF-8 encoding | The image runs with `LANG=en_US.UTF-8` | Garbled symbols |
+| 256 colors | The rainbow prompt palette | A flat, uncolored prompt |
+| OSC 4/10/11 color escapes | Switching to the capsule colors on shell entry | The capsule shell keeps the host colors |
+| OSC 1/2 title escapes | `[capsule:<name>]` window and tab titles | Titles show the host default |
+
+The font is the only item set up by hand: the image ships no fonts.
+Current terminals such as kitty, iTerm2, GNOME Terminal, and WezTerm meet the
+other requirements by default.
+
+`docker compose exec -it` starts the shell with `TERM=xterm`, which declares
+only 8 colors; the shell upgrades it to `xterm-256color`. Any other `TERM`
+passed with `-e TERM=...` is kept as is and needs a matching terminfo entry in
+the image.
+
+**Troubleshooting**, inside the capsule:
+
+- Icons show as boxes: install a Nerd Font on the host and select it in the
+  terminal profile, then open a new window.
+- Prompt has no colors: `echo $TERM` should print `xterm-256color`.
+- Colors don't switch on entry: check `CAPSULE_TERM_COLORS` is not `0`.
+- Either of the last two on an older image: rebuild the base image and recreate
+  the capsule; `/etc/capsule/info.json` shows which commit the image was built
+  from.
 
 ## Provenance
 
