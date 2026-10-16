@@ -26,6 +26,14 @@ if [[ $- == *i* ]] && grep -qs 'mise=untrusted' "$HOME/.provisioned/status"; the
   echo "mise.toml not trusted; tools not installed. Review ~/mise.toml, then run: mise trust ~/mise.toml && provision.sh"
 fi
 
+if [[ $- == *i* ]] && [[ -n "${CAPSULE_REPOS:-}${CAPSULE_REPOS_FILE:-}${GIT_USER_NAME:-}${GIT_USER_EMAIL:-}" ]]; then
+  echo "CAPSULE_REPOS, CAPSULE_REPOS_FILE and GIT_USER_* are ignored; declare repos and git identity in ~/.capsule-git.yaml"
+fi
+
+if [[ $- == *i* ]] && [[ -f "$HOME/.config/capsule/git/invalid" ]]; then
+  echo "git.yaml is invalid; git identity not applied and repos not cloned. Run: capsule-git check"
+fi
+
 CAPSULE_LABEL="${CAPSULE_NAME:-$HOST}"
 
 DISABLE_AUTO_TITLE=true

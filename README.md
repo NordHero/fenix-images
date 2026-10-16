@@ -69,27 +69,41 @@ docker compose exec dev zsh   # work inside the capsule
 docker compose down           # stop; the volume (your environment) is preserved
 ```
 
-### Clone your repos
+### Git identity and repos
 
-Declare the repos a capsule works on with `CAPSULE_REPOS` in `compose.yaml`
-(space-separated `owner/repo`), then clone them after authenticating:
+Declare the capsule's git identity and the repos it works on in
+[`example/git.yaml`](example/git.yaml), mounted at `/home/dev/.capsule-git.yaml`.
+It is validated against [`schema/git.schema.json`](schema/git.schema.json):
+
+```yaml
+version: 1
+identity:
+  name: Ada Lovelace
+  email: ada@example.com
+repos:
+  fenix-images:
+    url: https://github.com/NordHero/fenix-images.git
+    branch: main
+```
+
+The identity is applied on every start. Clone the repos after authenticating:
 
 ```bash
 gh auth login
 capsule-sync          # clones declared repos into ~/workspace, skips existing
+capsule-git check     # validates ~/.capsule-git.yaml
 ```
 
 `capsule-sync` is idempotent (existing checkouts are never touched) and clones
 over HTTPS via the `gh` credential helper. First boot attempts it automatically
-for any public repos and prints a reminder for the rest. For per-repo target
-dir/branch, mount a manifest at `/home/dev/.capsule-repos` (see
-[`example/repos.txt`](example/repos.txt)).
+for any public repos and prints a reminder for the rest.
 
 ### 3. Make it yours
 
 Edit `example/mise.toml` to declare your tools (see
-[`docs/TOOLS.md`](docs/TOOLS.md)) and `compose.yaml` to set `CAPSULE_NAME`, git
-identity, and welcome text. All supported variables are listed in
+[`docs/TOOLS.md`](docs/TOOLS.md)), `example/git.yaml` for git identity and
+repos, and `compose.yaml` to set `CAPSULE_NAME` and welcome text. All supported
+variables are listed in
 [`docs/DESIGN.md`](docs/DESIGN.md#environment-variables). Copy the folder per
 project to keep each capsule self-contained.
 

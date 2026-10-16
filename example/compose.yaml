@@ -9,6 +9,7 @@ services:
     volumes:
       - example-home:/home/dev
       - ./mise.toml:/home/dev/mise.toml:ro
+      - ./git.yaml:/home/dev/.capsule-git.yaml:ro
     environment:
       CAPSULE_NAME: "example"
       CAPSULE_TRUST_MISE: "1"

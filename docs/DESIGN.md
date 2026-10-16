@@ -11,7 +11,7 @@ All supported variables are listed under
 Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
 network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
 shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
-processes, forwards signals), **mise** (pinned, checksum-verified), and
+processes, forwards signals), **mise** and **yq** (pinned, checksum-verified), and
 `bubblewrap` + `socat` (the Linux backends for agent command sandboxes —
 bubblewrap + seccomp is the shared mechanism used by Kiro, GitHub Copilot CLI
 and Claude Code; installed but not enabled, and the base image ships no sandbox
@@ -68,18 +68,53 @@ builds, real values injected by CI):
 
 Run `capsule-info` inside a capsule to print the summary and the JSON.
 
-## Repositories
+## Git identity and repositories
 
-A capsule can declare the git repos it works on and clone them with
-`capsule-sync`:
+A capsule declares its git identity and repos in one file, `git.yaml`, mounted
+read-only at `~/.capsule-git.yaml` (see [`example/git.yaml`](../example/git.yaml)).
+The format is defined by [`schema/git.schema.json`](../schema/git.schema.json)
+(JSON Schema 2020-12); add the `yaml-language-server` `$schema` modeline from
+the example for editor validation.
 
-- **`CAPSULE_REPOS`** in `compose.yaml` — space-separated `owner/repo`, cloned
-  into `~/workspace/<repo>`.
-- **`~/.capsule-repos`** manifest (optional, mounted) — one `url [dir] [branch]`
-  per line for explicit target dir / branch. Only `https://` URLs are
-  accepted.
+```yaml
+version: 1
+identity:
+  name: Ada Lovelace
+  email: ada@example.com
+repos:
+  fenix-images:
+    url: https://github.com/NordHero/fenix-images.git
+    branch: main
+  customer-svc:
+    url: https://github.com/customer/svc.git
+    identity:
+      email: ada@customer.example
+```
 
-`capsule-sync` clones over HTTPS using the `gh` credential helper, is
+| Key | Required | Meaning |
+|---|---|---|
+| `version` | yes | Format version; only `1` is accepted. |
+| `identity.name`, `identity.email` | no | Default `user.name` / `user.email`. |
+| `repos.<dir>` | no | A repo cloned into `~/workspace/<dir>`. `<dir>` matches `^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`. |
+| `repos.<dir>.url` | yes | Clone URL; only `https://` is accepted. |
+| `repos.<dir>.branch` | no | Branch or tag to check out; defaults to the remote default branch. |
+| `repos.<dir>.identity` | no | `name` / `email` override for that repo only. |
+
+Unknown keys, duplicate keys, multiple YAML documents, and anchors/aliases are
+refused. `capsule-git check` validates the file and prints each error with its
+path; an invalid file is refused as a whole (no identity applied, no repos
+cloned) and each shell prints a reminder until a restart applies a valid file.
+
+**Identity.** On every start, `capsule-git apply` regenerates
+`~/.config/capsule/git/config` and includes it last from the global git
+config: `identity` becomes `user.name` / `user.email`, and each per-repo
+`identity` becomes an `includeIf "gitdir:~/workspace/<dir>/"` block. Changes
+therefore apply to existing clones after a restart, and `git.yaml` overrides a
+`user.*` set by hand with `git config --global`. A repo's own `git config
+--local user.*` still takes precedence. Removing the file removes the identity
+on the next start.
+
+**Repositories.** `capsule-sync` clones over HTTPS using the `gh` credential helper, is
 **idempotent** (an existing target dir is skipped, never pulled or reset), and
 prints a per-repo `cloned|skipped|failed` line plus a summary. Git never prompts
 for credentials (`GIT_TERMINAL_PROMPT=0`); a repo needing auth fails fast. The
@@ -87,6 +122,13 @@ entrypoint attempts it on start (non-blocking): public repos clone, anything
 needing auth is reported. It runs again after `capsule-unlock` unlocks the
 keyring, and manually after `gh auth login`. It never blocks or fails container
 start.
+
+**Removed and deprecated.** `CAPSULE_REPOS`, `CAPSULE_REPOS_FILE`,
+`GIT_USER_NAME`, and `GIT_USER_EMAIL` are ignored; when set, the entrypoint log
+and each shell print a warning. The text manifest `~/.capsule-repos` (one
+`url [dir] [branch]` per line) is still read by `capsule-sync` with a
+deprecation warning and will be removed; its `dir` must match the same pattern
+as `git.yaml`.
 
 ## Health
 
@@ -195,7 +237,7 @@ come from `aws sso login` into the home volume, never from the repo or image.
   are set (plus optional `AWS_SSO_SESSION`/`AWS_SSO_ACCOUNT_ID`/`AWS_SSO_ROLE_NAME`/
   `AWS_REGION`/`AWS_PROFILE`/`AWS_DEFAULT_OUTPUT`) and `~/.aws/config` does not
   yet exist, the entrypoint writes an `[sso-session]` + profile block —
-  mirroring how it handles `GIT_USER_*`. A fresh volume then needs only
+  A fresh volume then needs only
   `aws sso login`; no `aws configure sso`. The logic is generic and a no-op when
   the vars are unset or a config already exists; only non-secret identifiers
   come from the capsule.
@@ -225,8 +267,6 @@ shell, **command** = when that command runs. Values set under `environment:` in
 | `CAPSULE_ITERM_PROFILE_SWITCH` | `1` | shell | `0` disables the iTerm2 profile switch; also disables the color switch unless `CAPSULE_TERM_COLORS` is set. |
 | `ITERM_DEVCONTAINER_PROFILE` | `fenix-devcontainer` | shell | iTerm2 profile selected on shell start. |
 | `ITERM_DEFAULT_PROFILE` | `fenix` | shell | iTerm2 profile restored on shell exit. |
-| `GIT_USER_NAME` | unset | start | Written to `git config --global user.name` on every start. |
-| `GIT_USER_EMAIL` | unset | start | Written to `git config --global user.email` on every start. |
 
 **Provisioning**
 
@@ -238,13 +278,12 @@ shell, **command** = when that command runs. Values set under `environment:` in
 
 mise's own `MISE_*` variables pass through to mise unchanged.
 
-**Repositories** (see [Repositories](#repositories))
+**Git identity and repositories** (see [Git identity and repositories](#git-identity-and-repositories))
 
 | Variable | Default | When | Effect |
 |---|---|---|---|
-| `CAPSULE_REPOS` | unset | start, unlock, command | Space-separated `owner/repo` list cloned by `capsule-sync`. |
-| `CAPSULE_REPOS_FILE` | `~/.capsule-repos` | command | Manifest path read by `capsule-sync`. Automatic runs at start and after unlock trigger only when `CAPSULE_REPOS` is set or `~/.capsule-repos` exists; with another path, run `capsule-sync` manually. |
-| `CAPSULE_WORKSPACE` | `~/workspace` | command | Directory `capsule-sync` clones into. |
+| `CAPSULE_GIT_FILE` | `~/.capsule-git.yaml` | start, unlock, command | Path of `git.yaml` read by `capsule-git` and `capsule-sync`. Automatic `capsule-sync` runs at start and after unlock trigger when this file or the legacy `~/.capsule-repos` exists. |
+| `CAPSULE_WORKSPACE` | `~/workspace` | start, command | Directory `capsule-sync` clones into and per-repo identities match against. |
 
 **Keyring** (see [Credentials and the keyring](#credentials-and-the-keyring))
 
@@ -300,13 +339,14 @@ The entrypoint writes `DBUS_SESSION_BUS_ADDRESS`, `GNOME_KEYRING_CONTROL`, and
 | `BUILD_DATE` | current UTC time | Build arg; see [Provenance](#provenance). |
 
 Pins in the `Dockerfile` are build args with defaults kept in the `Dockerfile`:
-`MISE_VERSION`, `OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT`, and
-`GH_APT_FINGERPRINTS`. `build-images.sh` does not forward them; override with
+`MISE_VERSION`, `YQ_VERSION` + `YQ_SHA256_AMD64`/`YQ_SHA256_ARM64`,
+`OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT`, and `GH_APT_FINGERPRINTS`. `build-images.sh` does not forward them; override with
 `docker build --build-arg NAME=value` (see [Version pinning](#version-pinning)).
 
 ## Version pinning
 
-- **Base image** pins the `ubuntu:24.04` digest, mise (version + checksum),
+- **Base image** pins the `ubuntu:24.04` digest, mise (version + checksum), yq
+  (version + per-architecture SHA-256),
   oh-my-zsh and powerlevel10k (commit SHAs), and the `gh` apt key
   fingerprints. Ubuntu packages and `gh` come from signed apt repos at build
   time. Rebuild with `./build-images.sh` to pick up changes.
