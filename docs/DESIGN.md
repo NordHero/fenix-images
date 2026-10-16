@@ -96,7 +96,7 @@ repos:
 | `version` | yes | Format version; only `1` is accepted. |
 | `identity.name`, `identity.email` | no | Default `user.name` / `user.email`. |
 | `repos.<dir>` | no | A repo cloned into `~/workspace/<dir>`. `<dir>` matches `^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$`. |
-| `repos.<dir>.url` | yes | Clone URL; only `https://` is accepted. |
+| `repos.<dir>.url` | yes | Clone URL: `https://...`, or `git@github.com:<owner>/<repo>` (cloned only in [SSH agent mode](#ssh-agent-forwarding-hardware-keys)). |
 | `repos.<dir>.branch` | no | Branch or tag to check out; defaults to the remote default branch. |
 | `repos.<dir>.identity` | no | `name` / `email` override for that repo only. |
 
@@ -129,6 +129,51 @@ and each shell print a warning. The text manifest `~/.capsule-repos` (one
 `url [dir] [branch]` per line) is still read by `capsule-sync` with a
 deprecation warning and will be removed; its `dir` must match the same pattern
 as `git.yaml`.
+
+## SSH agent forwarding (hardware keys)
+
+Opt-in: git can authenticate to GitHub over SSH with a key that never enters
+the capsule, typically a FIDO2 hardware key (`ed25519-sk`). The host's
+ssh-agent socket is mounted into the capsule, and every signature is made on
+the host; with a hardware key each one needs a touch (and the PIN with
+`-O verify-required`). `cap_drop: ALL` and `no-new-privileges` stay.
+
+```yaml
+services:
+  dev:
+    volumes:
+      - /run/host-services/ssh-auth.sock:/run/host-services/ssh-auth.sock
+    environment:
+      CAPSULE_GIT_SSH: "1"
+      SSH_AUTH_SOCK: /run/host-services/ssh-auth.sock
+```
+
+The socket path on the host depends on the container runtime (Docker Desktop
+and OrbStack expose `/run/host-services/ssh-auth.sock`; on a Linux host mount
+`$SSH_AUTH_SOCK`). The `dev` user (UID 1000) must be able to open it; the
+capsule cannot change its permissions.
+
+With `CAPSULE_GIT_SSH=1`:
+
+- The entrypoint leaves git's SSH transport enabled (otherwise it sets
+  `protocol.ssh.allow never`) and logs whether the agent is reachable and how
+  many keys it holds (`ssh-agent: N key(s) ...`).
+- `SSH_AUTH_SOCK` from `compose.yaml` is kept: `~/.keyring-env` does not
+  override it, and `capsule-unlock` starts gnome-keyring without its `ssh`
+  component.
+- `capsule-sync` clones `git@github.com:<owner>/<repo>` URLs from `git.yaml`
+  (with `BatchMode=yes`, so a missing key fails instead of prompting). Without
+  the flag such URLs are refused. HTTPS repos still use the `gh` credential
+  helper, and `gh` itself still needs `gh auth login` for API use.
+
+GitHub's SSH host keys are pinned in the image (`/etc/ssh/ssh_known_hosts`,
+from `api.github.com/meta`, fingerprints checked against GitHub's documentation),
+and `/etc/ssh/ssh_config.d/10-capsule-github.conf` makes `github.com` use only
+that file (`StrictHostKeyChecking yes`, `UserKnownHostsFile /dev/null`). A
+changed host key fails the connection instead of being trusted on first use.
+
+Check inside the capsule: `ssh-add -l` lists the forwarded keys and
+`ssh -T git@github.com` greets the account the key belongs to.
 
 ## Health
 
@@ -285,6 +330,13 @@ mise's own `MISE_*` variables pass through to mise unchanged.
 | `CAPSULE_GIT_FILE` | `~/.capsule-git.yaml` | start, unlock, command | Path of `git.yaml` read by `capsule-git` and `capsule-sync`. Automatic `capsule-sync` runs at start and after unlock trigger when this file or the legacy `~/.capsule-repos` exists. |
 | `CAPSULE_WORKSPACE` | `~/workspace` | start, command | Directory `capsule-sync` clones into and per-repo identities match against. |
 
+**SSH agent forwarding** (see [SSH agent forwarding](#ssh-agent-forwarding-hardware-keys))
+
+| Variable | Default | When | Effect |
+|---|---|---|---|
+| `CAPSULE_GIT_SSH` | unset | start, unlock, command | `1` enables git over SSH with the forwarded agent: keeps `SSH_AUTH_SOCK`, runs gnome-keyring without its `ssh` component, and lets `capsule-sync` clone `git@github.com:` URLs. |
+| `SSH_AUTH_SOCK` | unset | start, shell | Path of the mounted host agent socket. Used only with `CAPSULE_GIT_SSH=1`; otherwise `~/.keyring-env` sets it to gnome-keyring's agent. |
+
 **Keyring** (see [Credentials and the keyring](#credentials-and-the-keyring))
 
 | Variable | Default | When | Effect |
@@ -324,7 +376,8 @@ Not meant to be overridden.
 | `DEBIAN_FRONTEND` | `noninteractive` | Non-interactive apt during the build. |
 
 The entrypoint writes `DBUS_SESSION_BUS_ADDRESS`, `GNOME_KEYRING_CONTROL`, and
-`SSH_AUTH_SOCK` to `~/.keyring-env`, which shells and the `gh` wrapper source.
+`SSH_AUTH_SOCK` (not with `CAPSULE_GIT_SSH=1`) to `~/.keyring-env`, which shells
+and the `gh` wrapper source.
 
 ### Build
 

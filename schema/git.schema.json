@@ -55,10 +55,10 @@
       "required": ["url"],
       "properties": {
         "url": {
-          "description": "Clone URL. Only https:// is accepted.",
+          "description": "Clone URL: https://, or git@github.com:<owner>/<repo> (cloned only when CAPSULE_GIT_SSH=1).",
           "allOf": [
             { "$ref": "#/$defs/text" },
-            { "pattern": "^https://[A-Za-z0-9.-]+(:[0-9]+)?/\\S+$" }
+            { "pattern": "^(https://[A-Za-z0-9.-]+(:[0-9]+)?/\\S+|git@github\\.com:[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+)$" }
           ]
         },
         "branch": {

@@ -19,6 +19,7 @@ is stored:
 | `gh` token | gnome-keyring in the home volume | keyring password + host disk encryption |
 | other CLI credentials (e.g. `~/.aws`) | files in the home volume | host disk encryption only |
 | keyring password file (optional) | the host | host file permissions + disk encryption |
+| SSH key for git (optional, `CAPSULE_GIT_SSH=1`) | the host agent, ideally a hardware key | never in the volume; touch/PIN per signature with a FIDO2 key |
 
 The keyring password (see
 [`docs/DESIGN.md`](docs/DESIGN.md#credentials-and-the-keyring)):
@@ -37,6 +38,15 @@ The keyring password (see
 
 Host full-disk encryption (FileVault, BitLocker, LUKS) protects the volume at
 rest while the host is off; it does nothing while the host is running.
+
+**Forwarded ssh-agent.** While the agent socket is mounted, any process in
+the capsule can ask the host agent to sign, and so authenticate as you to every
+host that key opens. The key itself cannot be copied out. With a FIDO2 key
+(`ed25519-sk`) each signature needs a touch, and the PIN too with
+`-O verify-required`; that is the limit. A software key loaded into the agent
+has no such limit, so forward only hardware-backed keys, or use
+`ssh-add -c` to confirm each use on the host. GitHub's host keys are pinned in
+the image, so a man-in-the-middle cannot be trusted on first use.
 
 Limit what a token can reach: prefer a fine-grained personal access token
 scoped to the repositories a capsule works on (`gh auth login --with-token`)
@@ -87,6 +97,7 @@ backend whenever one exists.
 | `gh` | latest from GitHub's apt repo; the repo key is checked against pinned fingerprints |
 | mise | version + SHA-256 |
 | yq | version + per-architecture SHA-256 (`YQ_VERSION`, `YQ_SHA256_AMD64`, `YQ_SHA256_ARM64` build-args) |
+| GitHub SSH host keys | `base/ssh_known_hosts`, from `api.github.com/meta`; update by hand when GitHub rotates a key and check the fingerprints against GitHub's documentation |
 | oh-my-zsh, powerlevel10k | commit SHA (`OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT` build-args) |
 | GitHub Actions | commit SHA (updated by Dependabot) |
 

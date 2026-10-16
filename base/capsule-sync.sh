@@ -25,10 +25,19 @@ fail_one() {
 
 clone_one() {
   local url="$1" dir="$2" branch="$3" target
+  local ssh=0 hint="is gh authenticated? run: gh auth login"
   case "$url" in
     https://*) ;;
+    git@github.com:*)
+      if [ "${CAPSULE_GIT_SSH:-}" != "1" ]; then
+        fail_one "$dir" "SSH URLs need CAPSULE_GIT_SSH=1"
+        return 0
+      fi
+      ssh=1
+      hint="is the key in the forwarded agent? run: ssh-add -l"
+      ;;
     *)
-      fail_one "$dir" "only https:// URLs are allowed"
+      fail_one "$dir" "only https:// and git@github.com: URLs are allowed"
       return 0
       ;;
   esac
@@ -45,11 +54,16 @@ clone_one() {
   local args=(clone)
   [ -n "$branch" ] && args+=(--branch "$branch")
   args+=(-- "$url" "$target")
-  if git "${args[@]}" >/dev/null 2>&1; then
+  if [ "$ssh" = 1 ]; then
+    GIT_SSH_COMMAND="ssh -o BatchMode=yes" git "${args[@]}" >/dev/null 2>&1
+  else
+    git "${args[@]}" >/dev/null 2>&1
+  fi
+  if [ "$?" -eq 0 ]; then
     printf 'repo: %s: cloned\n' "$dir"
     cloned=$((cloned + 1))
   else
-    fail_one "$dir" "is gh authenticated? run: gh auth login"
+    fail_one "$dir" "$hint"
   fi
 }
 
