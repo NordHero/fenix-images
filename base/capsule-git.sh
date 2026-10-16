@@ -26,7 +26,19 @@ REPO_EMAIL=()
 say() { printf 'capsule-git: %s\n' "$*" >&2; }
 clean() { printf '%s' "$1" | tr -d '[:cntrl:]'; }
 err() {
-  printf 'capsule-git: %s: %s: %s\n' "$FILE" "$1" "$2" >&2
+  local where="$1" line
+  # Annotate with the source line of the offending node so the user can jump
+  # straight to it. The label ("$1") is already a yq path expression, so yq's
+  # `line` operator resolves it. Skip "." (the whole-document / parse-error
+  # label, which yq always maps to line 1 and which may already carry L..C..).
+  if [ "$where" != "." ]; then
+    line="$(yq "$where | line" "$FILE" 2>/dev/null)"
+    case "$line" in
+      '' | 0 | *[!0-9]*) ;;                 # absent/0/non-numeric: no annotation
+      *) where="$where (line $line)" ;;
+    esac
+  fi
+  printf 'capsule-git: %s: %s: %s\n' "$FILE" "$where" "$2" >&2
   errors=$((errors + 1))
 }
 q() { yq "$1" "$FILE" 2>/dev/null; }
@@ -43,7 +55,7 @@ is_map() {
 }
 
 allow_keys() {
-  local path="$1" label="$2" n i key a ok
+  local path="$1" label="$2" n i key a ok keylabel
   shift 2
   n="$(q "$path | length")"
   for ((i = 0; i < n; i++)); do
@@ -52,7 +64,11 @@ allow_keys() {
     for a in "$@"; do
       [ "$key" = "$a" ] && ok=1
     done
-    [ "$ok" = 1 ] || err "$label" "unknown key '$(clean "$key")'"
+    if [ "$ok" != 1 ]; then
+      # Point at the offending key's own line, not the parent mapping.
+      if [ "$label" = "." ]; then keylabel=".$key"; else keylabel="$label.$key"; fi
+      err "$keylabel" "unknown key '$(clean "$key")'"
+    fi
   done
 }
 
@@ -136,7 +152,16 @@ validate() {
     return 1
   fi
   if ! msg="$(yq '.' "$FILE" 2>&1 >/dev/null)"; then
-    err "." "not valid YAML ($(clean "${msg##*: }"))"
+    # yq reports e.g. "Error: bad file '<path>': go-yaml load error in
+    # scanner at L18.C11: mapping values are not allowed in this context".
+    # Strip yq's path/lead-in noise but keep the "L..C.." location so the
+    # user knows which line to fix (the old ${msg##*: } dropped it).
+    msg="${msg#Error: }"
+    case "$msg" in
+      "bad file '"*"': "*) msg="${msg#bad file \'*\': }" ;;
+    esac
+    msg="${msg#go-yaml load error in }"
+    err "." "not valid YAML ($(clean "$msg"))"
     return 1
   fi
   if [ "$(yq ea '[.] | length' "$FILE" 2>/dev/null)" != "1" ]; then
