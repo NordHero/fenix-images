@@ -25,12 +25,14 @@ locked_state() {
 
 is_unlocked() { [ -n "${DBUS_SESSION_BUS_ADDRESS:-}" ] && [ "$(locked_state)" = "false" ]; }
 
+ssh_forwarded() { [ "${CAPSULE_GIT_SSH:-}" = "1" ]; }
+
 write_env() {
-  cat >"$ENV_FILE" <<EOF
-export DBUS_SESSION_BUS_ADDRESS='${DBUS_SESSION_BUS_ADDRESS:-}'
-export GNOME_KEYRING_CONTROL='${GNOME_KEYRING_CONTROL:-}'
-export SSH_AUTH_SOCK='${SSH_AUTH_SOCK:-}'
-EOF
+  {
+    printf "export DBUS_SESSION_BUS_ADDRESS='%s'\n" "${DBUS_SESSION_BUS_ADDRESS:-}"
+    printf "export GNOME_KEYRING_CONTROL='%s'\n" "${GNOME_KEYRING_CONTROL:-}"
+    ssh_forwarded || printf "export SSH_AUTH_SOCK='%s'\n" "${SSH_AUTH_SOCK:-}"
+  } >"$ENV_FILE"
 }
 
 stop_daemon() {
@@ -43,17 +45,19 @@ stop_daemon() {
     sleep 0.1
   done
   GNOME_KEYRING_CONTROL=""
-  SSH_AUTH_SOCK=""
+  ssh_forwarded || SSH_AUTH_SOCK=""
   write_env
 }
 
 start_daemon() {
   local out line value state
-  out="$(printf '%s' "$1" | gnome-keyring-daemon --unlock --components=secrets,pkcs11,ssh 2>/dev/null)"
+  local components=secrets,pkcs11,ssh
+  ssh_forwarded && components=secrets,pkcs11
+  out="$(printf '%s' "$1" | gnome-keyring-daemon --unlock --components="$components" 2>/dev/null)"
   while IFS='=' read -r line value; do
     case "$line" in
       GNOME_KEYRING_CONTROL) export GNOME_KEYRING_CONTROL="$value" ;;
-      SSH_AUTH_SOCK) export SSH_AUTH_SOCK="$value" ;;
+      SSH_AUTH_SOCK) ssh_forwarded || export SSH_AUTH_SOCK="$value" ;;
     esac
   done <<<"$out"
   write_env

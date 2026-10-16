@@ -35,7 +35,8 @@ and reference that local image from their capsules. No image is published.
 - `Dockerfile` — the base image (OS + eye-candy + mise). Root context.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
   `gh` wrapper, `capsule-unlock`,
-  xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
+  xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`, and the pinned
+  GitHub SSH host keys `ssh_known_hosts` + `ssh_config`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
   `BUILD_DATE` build-args) is written to `/etc/capsule/info.json`, the
   `CAPSULE_INFO` env, and OCI image labels. `capsule-git` validates
   `~/.capsule-git.yaml` (git identity + repos) and applies the identity on

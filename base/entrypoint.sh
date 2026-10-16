@@ -6,11 +6,11 @@ rm -rf "$HOME"/.cache/keyring-* "$HOME/.cache/capsule-unlock.lock" || true
 
 eval "$(dbus-launch --sh-syntax)" 2>/dev/null || true
 
-cat >"$HOME/.keyring-env" <<EOF || true
-export DBUS_SESSION_BUS_ADDRESS='${DBUS_SESSION_BUS_ADDRESS:-}'
-export GNOME_KEYRING_CONTROL=''
-export SSH_AUTH_SOCK=''
-EOF
+{
+  printf "export DBUS_SESSION_BUS_ADDRESS='%s'\n" "${DBUS_SESSION_BUS_ADDRESS:-}"
+  printf "export GNOME_KEYRING_CONTROL=''\n"
+  [ "${CAPSULE_GIT_SSH:-}" = "1" ] || printf "export SSH_AUTH_SOCK=''\n"
+} >"$HOME/.keyring-env" || true
 
 KEYRING_PASSWORD_FILE="${KEYRING_PASSWORD_FILE:-/run/secrets/keyring_password}"
 if [ -f "$KEYRING_PASSWORD_FILE" ]; then
@@ -18,7 +18,17 @@ if [ -f "$KEYRING_PASSWORD_FILE" ]; then
 fi
 
 git config --global --unset-all safe.directory '^\*$' || true
-git config --global protocol.ssh.allow never || true
+if [ "${CAPSULE_GIT_SSH:-}" = "1" ]; then
+  git config --global --unset-all protocol.ssh.allow || true
+  ssh-add -l >/dev/null 2>&1
+  case $? in
+    0) echo "ssh-agent: $(ssh-add -l 2>/dev/null | wc -l) key(s) via SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-}" >&2 ;;
+    1) echo "ssh-agent: reachable via SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-} but holds no keys; run ssh-add on the host" >&2 ;;
+    *) echo "ssh-agent: not reachable (SSH_AUTH_SOCK=${SSH_AUTH_SOCK:-}); mount the host agent socket and set SSH_AUTH_SOCK" >&2 ;;
+  esac
+else
+  git config --global protocol.ssh.allow never || true
+fi
 git config --global --unset-all credential.https://github.com.helper || true
 git config --global --add credential.https://github.com.helper '' || true
 git config --global --add credential.https://github.com.helper '!gh auth git-credential' || true

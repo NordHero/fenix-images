@@ -307,6 +307,62 @@ jobs:
           '
           docker rm -f fenix-git
 
+      - name: Verify SSH agent forwarding (opt-in, hardened, pinned GitHub host keys)
+        run: |
+          set -ex
+          docker volume create fenix-agent
+          docker run --rm --user 0 -v fenix-agent:/agent --entrypoint chown fenix-base:ci 1000:1000 /agent
+          docker run -d --name fenix-agent-host --user 1000:1000 -v fenix-agent:/agent \
+            --entrypoint ssh-agent fenix-base:ci -D -a /agent/sock
+          sleep 2
+          docker exec fenix-agent-host bash -c 'ssh-keygen -q -t ed25519 -N "" -C ci-throwaway -f /tmp/k && SSH_AUTH_SOCK=/agent/sock ssh-add /tmp/k'
+          printf '%s\n' 'version: 1' 'repos:' '  hello:' '    url: git@github.com:octocat/Hello-World.git' >/tmp/ci-ssh-git.yaml
+
+          docker run -d --name fenix-ssh \
+            --cap-drop ALL --security-opt no-new-privileges:true \
+            -e CAPSULE_GIT_SSH=1 -e SSH_AUTH_SOCK=/agent/sock \
+            -v fenix-agent:/agent \
+            -v /tmp/ci-ssh-git.yaml:/home/dev/.capsule-git.yaml:ro \
+            fenix-base:ci
+          sleep 5
+          docker logs fenix-ssh 2>&1 | grep -q "ssh-agent: 1 key(s) via SSH_AUTH_SOCK=/agent/sock"
+          docker exec -i fenix-ssh bash -lc '
+            set -ex
+            . ~/.keyring-env
+            test "$SSH_AUTH_SOCK" = /agent/sock
+            ssh-add -l | grep -q ci-throwaway
+            test -z "$(git config --global --get-all protocol.ssh.allow)"
+            ssh -G github.com | grep -qx "userknownhostsfile /dev/null"
+            ssh -G github.com | grep -qx "stricthostkeychecking true"
+            out="$(ssh -o BatchMode=yes -T git@github.com 2>&1 || true)"
+            printf "%s\n" "$out" | grep -q "Permission denied (publickey)"
+            out="$(capsule-sync || true)"
+            printf "%s\n" "$out" | grep -q "hello: failed (is the key in the forwarded agent? run: ssh-add -l)"
+            printf "pw\npw\n" | capsule-unlock
+            capsule-unlock --status
+            . ~/.keyring-env
+            test "$SSH_AUTH_SOCK" = /agent/sock
+            ssh-add -l | grep -q ci-throwaway
+          '
+          docker rm -f fenix-ssh
+
+          docker run -d --name fenix-nossh \
+            -e SSH_AUTH_SOCK=/agent/sock \
+            -v fenix-agent:/agent \
+            -v /tmp/ci-ssh-git.yaml:/home/dev/.capsule-git.yaml:ro \
+            fenix-base:ci
+          sleep 5
+          docker exec fenix-nossh bash -lc '
+            set -ex
+            test "$(git config --global protocol.ssh.allow)" = "never"
+            . ~/.keyring-env
+            test -z "$SSH_AUTH_SOCK"
+            out="$(capsule-sync || true)"
+            printf "%s\n" "$out" | grep -q "hello: failed (SSH URLs need CAPSULE_GIT_SSH=1)"
+          '
+          docker rm -f fenix-nossh fenix-agent-host
+          docker volume rm fenix-agent
+
       - name: Verify AWS SSO config seeding (writes from env; no-op otherwise)
         run: |
           set -ex

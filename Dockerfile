@@ -91,6 +91,8 @@ COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
 COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
 COPY --chmod=0755 base/capsule-git.sh /usr/local/bin/capsule-git
 COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
+COPY --chmod=0644 base/ssh_known_hosts /etc/ssh/ssh_known_hosts
+COPY --chmod=0644 base/ssh_config /etc/ssh/ssh_config.d/10-capsule-github.conf
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 

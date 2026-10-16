@@ -1,0 +1,5 @@
+Host github.com
+  StrictHostKeyChecking yes
+  UserKnownHostsFile /dev/null
+  GlobalKnownHostsFile /etc/ssh/ssh_known_hosts
+  UpdateHostKeys no

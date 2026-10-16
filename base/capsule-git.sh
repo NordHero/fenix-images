@@ -8,6 +8,7 @@ GEN_MAIN="$GEN_DIR/config"
 
 DIR_RE='^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$'
 URL_RE='^https://[A-Za-z0-9.-]+(:[0-9]+)?/[^[:space:]]+$'
+SSH_URL_RE='^git@github\.com:[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$'
 BRANCH_RE='^[A-Za-z0-9_][A-Za-z0-9._/-]*$'
 EMAIL_RE='^[^@[:space:]<>]+@[^@[:space:]<>]+$'
 
@@ -110,8 +111,8 @@ repo() {
   url="$FIELD"
   if [ "$rc" = 1 ]; then
     err "$label.url" "required"
-  elif [ "$rc" = 0 ] && ! [[ "$url" =~ $URL_RE ]]; then
-    err "$label.url" "must be an https:// URL"
+  elif [ "$rc" = 0 ] && ! [[ "$url" =~ $URL_RE ]] && ! [[ "$url" =~ $SSH_URL_RE ]]; then
+    err "$label.url" "must be an https:// URL or git@github.com:<owner>/<repo>"
   fi
   if field "$path" branch "$label.branch"; then
     branch="$FIELD"
