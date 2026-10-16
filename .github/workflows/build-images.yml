@@ -255,7 +255,7 @@ jobs:
             printf "file:///etc local\nhttps://example.invalid/* *\n" >"$HOME/.capsule-repos"
             out="$(cd "$HOME/ws" && capsule-sync || true)"
             printf "%s\n" "$out" | grep -q "is deprecated"
-            printf "%s\n" "$out" | grep -q "local: failed (only https:// URLs are allowed)"
+            printf "%s\n" "$out" | grep -q "local: failed (only https:// and git@github.com: URLs are allowed)"
             printf "%s\n" "$out" | grep -q "repo: \*: failed"
             test ! -e "$HOME/ws/local"
           '
