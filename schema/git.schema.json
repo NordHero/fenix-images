@@ -1,0 +1,78 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/NordHero/fenix-images/main/schema/git.schema.json",
+  "title": "Capsule git.yaml",
+  "description": "Git identity and repositories of a capsule, mounted at /home/dev/.capsule-git.yaml.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version"],
+  "properties": {
+    "version": {
+      "description": "Format version.",
+      "const": 1
+    },
+    "identity": {
+      "description": "Default git identity, written to the global git config on every start.",
+      "$ref": "#/$defs/identity"
+    },
+    "repos": {
+      "description": "Repositories cloned by capsule-sync, keyed by target directory under ~/workspace.",
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$"
+      },
+      "additionalProperties": {
+        "$ref": "#/$defs/repo"
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[^\\u0000-\\u001f\\u007f]+$"
+    },
+    "identity": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "description": "git user.name.",
+          "$ref": "#/$defs/text"
+        },
+        "email": {
+          "description": "git user.email.",
+          "allOf": [
+            { "$ref": "#/$defs/text" },
+            { "pattern": "^[^@\\s<>]+@[^@\\s<>]+$" }
+          ]
+        }
+      }
+    },
+    "repo": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["url"],
+      "properties": {
+        "url": {
+          "description": "Clone URL. Only https:// is accepted.",
+          "allOf": [
+            { "$ref": "#/$defs/text" },
+            { "pattern": "^https://[A-Za-z0-9.-]+(:[0-9]+)?/\\S+$" }
+          ]
+        },
+        "branch": {
+          "description": "Branch or tag to check out. Defaults to the remote default branch.",
+          "allOf": [
+            { "$ref": "#/$defs/text" },
+            { "pattern": "^(?!.*\\.\\.)(?!.*/$)[A-Za-z0-9_][A-Za-z0-9._/-]*$" }
+          ]
+        },
+        "identity": {
+          "description": "Identity override for this repository only, applied with includeIf gitdir.",
+          "$ref": "#/$defs/identity"
+        }
+      }
+    }
+  }
+}

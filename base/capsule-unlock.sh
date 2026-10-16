@@ -130,7 +130,7 @@ after_unlock() {
   if grep -qs 'oauth_token' "$HOME/.config/gh/hosts.yml"; then
     say "plaintext gh token in ~/.config/gh/hosts.yml; run 'gh auth logout' then 'gh auth login' to move it into the keyring"
   fi
-  if [ -x /usr/local/bin/capsule-sync ] && { [ -n "${CAPSULE_REPOS:-}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
+  if [ -x /usr/local/bin/capsule-sync ] && { [ -f "${CAPSULE_GIT_FILE:-$HOME/.capsule-git.yaml}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
     /usr/local/bin/capsule-sync || true
   fi
 }

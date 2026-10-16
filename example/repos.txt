@@ -1,7 +1,0 @@
-# Optional repo manifest for capsule-sync. Mount at /home/dev/.capsule-repos.
-# One repo per line:  <url>  [dir]  [branch]
-# - dir defaults to the repo name; branch defaults to the remote default.
-# Lines starting with # and blank lines are ignored.
-#
-# https://github.com/NordHero/fenix-images.git   images   main
-# https://github.com/octocat/Hello-World.git     hello    main

@@ -82,6 +82,12 @@ jobs:
             exit 1
           fi
 
+      - name: Validate git.yaml schema and example
+        run: |
+          set -ex
+          pipx run check-jsonschema==0.34.1 --check-metaschema schema/git.schema.json
+          pipx run check-jsonschema==0.34.1 --schemafile schema/git.schema.json example/git.yaml
+
   build:
     needs: validate-config
     runs-on: ubuntu-latest
@@ -124,6 +130,8 @@ jobs:
             test ! -d /usr/local/share/fonts/MesloLGS-NF
             test -x /usr/local/bin/extra-tools.sh
             test -x /usr/local/bin/capsule-sync
+            test -x /usr/local/bin/capsule-git
+            yq --version
             test -x /usr/local/bin/capsule-info
             test -x /usr/local/bin/capsule-unlock
             test ! -e /usr/share/dbus-1/services/org.freedesktop.secrets.service
@@ -141,10 +149,7 @@ jobs:
       - name: Verify entrypoint runs and reaches steady state
         run: |
           set -ex
-          docker run -d --name fenix-ep \
-            -e GIT_USER_NAME="CI" \
-            -e GIT_USER_EMAIL="ci@test" \
-            fenix-base:ci
+          docker run -d --name fenix-ep fenix-base:ci
           sleep 5
           test "$(docker inspect -f '{{.State.Running}}' fenix-ep)" = "true"
           docker exec fenix-ep bash -lc '
@@ -170,7 +175,7 @@ jobs:
           set -ex
           ex() { c="$1"; shift; docker exec -i "$c" bash -lc "$*"; }
           lookup() { ex "$1" '. ~/.keyring-env; secret-tool lookup svc ci' || true; }
-          up() { docker run -d --name "$1" -e GIT_USER_NAME=CI -e GIT_USER_EMAIL=ci@test "${@:2}" fenix-base:ci; sleep 3; }
+          up() { docker run -d --name "$1" "${@:2}" fenix-base:ci; sleep 3; }
           restart() { docker restart "$1"; sleep 3; }
 
           up fenix-kr
@@ -210,38 +215,102 @@ jobs:
           ex fenix-sec capsule-unlock --status
           docker rm -f fenix-sec
 
-      - name: Verify capsule-sync (clone, idempotent skip, graceful failure)
+      - name: Verify capsule-sync (git.yaml clone, idempotent skip, refusals, legacy manifest)
         run: |
           docker run --rm --entrypoint bash fenix-base:ci -lc '
             set -ex
-            export CAPSULE_WORKSPACE="$HOME/ws" CAPSULE_REPOS_FILE="$HOME/none"
+            export CAPSULE_WORKSPACE="$HOME/ws"
+            g="$HOME/.capsule-git.yaml"
 
-            # Clone a small public repo.
-            CAPSULE_REPOS="octocat/Hello-World" capsule-sync
-            test -d "$HOME/ws/Hello-World/.git"
+            # Clone a small public repo declared in git.yaml.
+            printf "%s\n" "version: 1" "repos:" "  hello:" "    url: https://github.com/octocat/Hello-World.git" >"$g"
+            capsule-git check
+            capsule-sync
+            test -d "$HOME/ws/hello/.git"
 
             # Idempotent: second run skips the existing checkout.
-            out="$(CAPSULE_REPOS="octocat/Hello-World" capsule-sync)"
-            printf "%s\n" "$out" | grep -q "Hello-World: skipped"
+            out="$(capsule-sync)"
+            printf "%s\n" "$out" | grep -q "hello: skipped"
 
-            # Malformed entry fails gracefully (non-zero, clear message).
-            if CAPSULE_REPOS="not-a-repo" capsule-sync; then exit 1; fi
+            # CAPSULE_REPOS is ignored with a warning.
+            out="$(CAPSULE_REPOS="octocat/Spoon-Knife" capsule-sync)"
+            printf "%s\n" "$out" | grep -q "CAPSULE_REPOS is no longer supported"
+            test ! -e "$HOME/ws/Spoon-Knife"
 
-            # Manifest: non-https URLs are refused; words are not glob-expanded.
-            printf "file:///etc local\n" >"$HOME/manifest"
-            out="$(CAPSULE_REPOS_FILE="$HOME/manifest" capsule-sync || true)"
-            printf "%s\n" "$out" | grep -q "local: failed (only https:// URLs are allowed)"
+            # Invalid files are refused as a whole: non-https URL, unsafe dir, unknown version.
+            for body in \
+              "version: 1|repos:|  local:|    url: file:///etc" \
+              "version: 1|repos:|  ../up:|    url: https://github.com/octocat/Hello-World.git" \
+              "version: 2"; do
+              printf "%s\n" "$body" | tr "|" "\n" >"$g"
+              if capsule-git check; then exit 1; fi
+              out="$(capsule-sync || true)"
+              printf "%s\n" "$out" | grep -q "repo: .capsule-git.yaml: failed (invalid; run: capsule-git check)"
+            done
             test ! -e "$HOME/ws/local"
-            printf "https://example.invalid/* *\n" >"$HOME/manifest"
-            out="$(cd "$HOME/ws" && CAPSULE_REPOS_FILE="$HOME/manifest" capsule-sync || true)"
+            test ! -e "$HOME/up"
+            rm -f "$g"
+
+            # Legacy text manifest: still read, with a deprecation warning; refusals still apply.
+            printf "file:///etc local\nhttps://example.invalid/* *\n" >"$HOME/.capsule-repos"
+            out="$(cd "$HOME/ws" && capsule-sync || true)"
+            printf "%s\n" "$out" | grep -q "is deprecated"
+            printf "%s\n" "$out" | grep -q "local: failed (only https:// URLs are allowed)"
             printf "%s\n" "$out" | grep -q "repo: \*: failed"
+            test ! -e "$HOME/ws/local"
           '
+
+      - name: Verify git identity from git.yaml (global, per-repo, existing clone, ignored env)
+        run: |
+          set -ex
+          printf '%s\n' \
+            'version: 1' \
+            'identity:' \
+            '  name: CI' \
+            '  email: ci@test' \
+            'repos:' \
+            '  other:' \
+            '    url: https://github.com/octocat/Hello-World.git' \
+            '    identity:' \
+            '      email: other@test' >/tmp/ci-git.yaml
+          docker run -d --name fenix-git \
+            -e GIT_USER_NAME=ignored \
+            -v /tmp/ci-git.yaml:/home/dev/.capsule-git.yaml:ro \
+            fenix-base:ci
+          for i in $(seq 1 30); do
+            docker exec fenix-git test -d /home/dev/workspace/other/.git && break
+            sleep 1
+          done
+          docker logs fenix-git 2>&1 | grep -q "GIT_USER_NAME is no longer supported"
+          docker exec fenix-git bash -lc '
+            set -ex
+            test "$(git config --includes --global user.name)" = "CI"
+            test "$(git config --includes --global user.email)" = "ci@test"
+            test -d "$HOME/workspace/other/.git"
+            test "$(git -C "$HOME/workspace/other" config user.email)" = "other@test"
+            test "$(git -C "$HOME/workspace/other" config user.name)" = "CI"
+            mkdir -p "$HOME/workspace/plain" && git -C "$HOME/workspace/plain" init -q
+            test "$(git -C "$HOME/workspace/plain" config user.email)" = "ci@test"
+            test "$(git config --global --get-all include.path | wc -l)" -eq 1
+          '
+          sed 's/other@test/changed@test/' /tmp/ci-git.yaml >/tmp/ci-git.new
+          cat /tmp/ci-git.new >/tmp/ci-git.yaml
+          docker restart fenix-git
+          for i in $(seq 1 30); do
+            docker exec fenix-git bash -lc 'test "$(git -C "$HOME/workspace/other" config user.email)" = "changed@test"' && break
+            sleep 1
+          done
+          docker exec fenix-git bash -lc '
+            set -ex
+            test "$(git -C "$HOME/workspace/other" config user.email)" = "changed@test"
+            test "$(git config --global --get-all include.path | wc -l)" -eq 1
+          '
+          docker rm -f fenix-git
 
       - name: Verify AWS SSO config seeding (writes from env; no-op otherwise)
         run: |
           set -ex
           docker run -d --name fenix-aws \
-            -e GIT_USER_NAME="CI" -e GIT_USER_EMAIL="ci@test" \
             -e AWS_SSO_SESSION="ci-sso" \
             -e AWS_SSO_START_URL="https://example.awsapps.com/start" \
             -e AWS_SSO_REGION="eu-west-1" \
@@ -261,7 +330,6 @@ jobs:
           docker rm -f fenix-aws
 
           docker run -d --name fenix-noaws \
-            -e GIT_USER_NAME="CI" -e GIT_USER_EMAIL="ci@test" \
             fenix-base:ci
           sleep 3
           docker exec fenix-noaws bash -lc 'test ! -f "$HOME/.aws/config"'
@@ -272,8 +340,6 @@ jobs:
           set -ex
           printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "kiro-cli"' > /tmp/ci-mise.toml
           docker run -d --name fenix-prov \
-            -e GIT_USER_NAME="CI" \
-            -e GIT_USER_EMAIL="ci@test" \
             -v "/tmp/ci-mise.toml:/home/dev/mise.toml:ro" \
             fenix-base:ci
           for i in $(seq 1 30); do
@@ -306,8 +372,6 @@ jobs:
           set -ex
           printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "definitely-not-a-tool"' > /tmp/ci-mise-bad.toml
           docker run -d --name fenix-bad \
-            -e GIT_USER_NAME="CI" \
-            -e GIT_USER_EMAIL="ci@test" \
             -e CAPSULE_TRUST_MISE=1 \
             -v "/tmp/ci-mise-bad.toml:/home/dev/mise.toml:ro" \
             fenix-base:ci

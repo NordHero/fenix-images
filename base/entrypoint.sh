@@ -35,8 +35,7 @@ if [ -d /opt/devbox-skel ]; then
   cp -f /opt/devbox-skel/.p10k.zsh "$HOME/.p10k.zsh" || true
 fi
 
-if [ -n "${GIT_USER_NAME:-}" ]; then git config --global user.name "$GIT_USER_NAME" || true; fi
-if [ -n "${GIT_USER_EMAIL:-}" ]; then git config --global user.email "$GIT_USER_EMAIL" || true; fi
+/usr/local/bin/capsule-git apply || true
 
 if [ -n "${AWS_SSO_START_URL:-}" ] && [ -n "${AWS_SSO_REGION:-}" ] && [ ! -f "$HOME/.aws/config" ]; then
   sso_session="${AWS_SSO_SESSION:-sso}"
@@ -66,7 +65,7 @@ if [ -f "$HOME/mise.toml" ] && [ -x /usr/local/bin/provision.sh ]; then
   /usr/local/bin/provision.sh || echo "provision: incomplete; run 'provision.sh' to retry (see ~/.provisioned/last-run.log)" >&2
 fi
 
-if [ -x /usr/local/bin/capsule-sync ] && { [ -n "${CAPSULE_REPOS:-}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
+if [ -x /usr/local/bin/capsule-sync ] && { [ -f "${CAPSULE_GIT_FILE:-$HOME/.capsule-git.yaml}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
   /usr/local/bin/capsule-sync || echo "capsule-sync: some repos pending — run 'capsule-sync' after 'gh auth login'" >&2
 fi
 

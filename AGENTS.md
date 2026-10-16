@@ -35,10 +35,14 @@ and reference that local image from their capsules. No image is published.
 - `Dockerfile` — the base image (OS + eye-candy + mise). Root context.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
   `gh` wrapper, `capsule-unlock`,
-  xclip shim, `capsule-info`, `capsule-sync`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
+  xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
   `BUILD_DATE` build-args) is written to `/etc/capsule/info.json`, the
-  `CAPSULE_INFO` env, and OCI image labels. `capsule-sync` clones repos declared
-  in `CAPSULE_REPOS` / `~/.capsule-repos` idempotently via the gh credential helper.
+  `CAPSULE_INFO` env, and OCI image labels. `capsule-git` validates
+  `~/.capsule-git.yaml` (git identity + repos) and applies the identity on
+  start; `capsule-sync` clones its repos idempotently via the gh credential
+  helper.
+- `schema/` — `git.schema.json`, the JSON Schema for `git.yaml`. Keep it and
+  the runtime checks in `base/capsule-git.sh` in step.
 - `extra-tools.sh` — installs tools with no mise backend (currently only
   `kiro-cli`); reads `EXTRA_TOOLS` from the mounted `mise.toml`. Tools with a
   mise backend are declared in `[tools]` instead.

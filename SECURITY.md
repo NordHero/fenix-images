@@ -86,11 +86,14 @@ backend whenever one exists.
 | Ubuntu packages | latest from Ubuntu's signed apt repos at build time |
 | `gh` | latest from GitHub's apt repo; the repo key is checked against pinned fingerprints |
 | mise | version + SHA-256 |
+| yq | version + per-architecture SHA-256 (`YQ_VERSION`, `YQ_SHA256_AMD64`, `YQ_SHA256_ARM64` build-args) |
 | oh-my-zsh, powerlevel10k | commit SHA (`OHMYZSH_COMMIT`, `POWERLEVEL10K_COMMIT` build-args) |
 | GitHub Actions | commit SHA (updated by Dependabot) |
 
 Workflows use least-privilege permissions. Bump the oh-my-zsh and
-powerlevel10k commits deliberately; Dependabot does not track them.
+powerlevel10k commits and yq deliberately; Dependabot does not track them.
+For yq, take the SHA-256 of `yq_linux_amd64` and `yq_linux_arm64` from the
+release's `checksums` file and confirm it against the downloaded binaries.
 
 ## Scanning
 

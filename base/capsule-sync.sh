@@ -3,7 +3,9 @@ set -uo pipefail
 set -f
 
 WORKSPACE="${CAPSULE_WORKSPACE:-$HOME/workspace}"
-MANIFEST="${CAPSULE_REPOS_FILE:-$HOME/.capsule-repos}"
+GIT_FILE="${CAPSULE_GIT_FILE:-$HOME/.capsule-git.yaml}"
+LEGACY="$HOME/.capsule-repos"
+DIR_RE='^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$'
 export GIT_TERMINAL_PROMPT=0
 
 mkdir -p "$WORKSPACE"
@@ -30,6 +32,10 @@ clone_one() {
       return 0
       ;;
   esac
+  if ! [[ "$dir" =~ $DIR_RE ]]; then
+    fail_one "$dir" "unsafe directory name"
+    return 0
+  fi
   target="$WORKSPACE/$dir"
   if [ -e "$target" ]; then
     printf 'repo: %s: skipped (exists)\n' "$dir"
@@ -38,7 +44,7 @@ clone_one() {
   fi
   local args=(clone)
   [ -n "$branch" ] && args+=(--branch "$branch")
-  args+=("$url" "$target")
+  args+=(-- "$url" "$target")
   if git "${args[@]}" >/dev/null 2>&1; then
     printf 'repo: %s: cloned\n' "$dir"
     cloned=$((cloned + 1))
@@ -47,18 +53,21 @@ clone_one() {
   fi
 }
 
-for entry in ${CAPSULE_REPOS:-}; do
-  case "$entry" in
-    */*)
-      clone_one "https://github.com/${entry}.git" "${entry##*/}" ""
-      ;;
-    *)
-      fail_one "$entry" "expected owner/repo"
-      ;;
-  esac
-done
+[ -n "${CAPSULE_REPOS:-}" ] && log "CAPSULE_REPOS is no longer supported and is ignored; declare repos in $GIT_FILE"
 
-if [ -f "$MANIFEST" ]; then
+if [ -f "$GIT_FILE" ]; then
+  if list="$(/usr/local/bin/capsule-git repos)"; then
+    while IFS=$'\037' read -r dir url branch; do
+      [ -z "$dir" ] && continue
+      clone_one "$url" "$dir" "$branch"
+    done <<<"$list"
+  else
+    fail_one "${GIT_FILE##*/}" "invalid; run: capsule-git check"
+  fi
+fi
+
+if [ -f "$LEGACY" ]; then
+  log "$LEGACY is deprecated and will be removed; move its repos to $GIT_FILE"
   while IFS= read -r line || [ -n "$line" ]; do
     line="${line%%#*}"
     set -- $line
@@ -71,11 +80,11 @@ if [ -f "$MANIFEST" ]; then
       dir="${dir%.git}"
     fi
     clone_one "$url" "$dir" "$branch"
-  done <"$MANIFEST"
+  done <"$LEGACY"
 fi
 
 if [ "$((cloned + skipped + failed))" -eq 0 ]; then
-  log "no repos declared (set CAPSULE_REPOS or mount ~/.capsule-repos)"
+  log "no repos declared (add repos to $GIT_FILE)"
   exit 0
 fi
 

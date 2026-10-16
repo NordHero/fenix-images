@@ -10,6 +10,9 @@ ENV DEV_HOME=/home/dev
 ARG MISE_VERSION=v2026.10.10
 ARG OHMYZSH_COMMIT=964ddf789b022b6958b27d02d7fa54f552de21e9
 ARG POWERLEVEL10K_COMMIT=d05a1b00f9a61f9578bf9dc19b8451942dde8734
+ARG YQ_VERSION=v4.54.1
+ARG YQ_SHA256_AMD64=8e34fc298390875de416e6a4afcb8cabeceb25d9aa8506c1a2f9353cf702ea5f
+ARG YQ_SHA256_ARM64=189088da0c6429ec5178dfaab1a114805f6cab0b61b165ab236efedf1d57a71b
 ARG GH_APT_FINGERPRINTS="2C6106201985B60E6C7AC87323F3D4EA75716059 7F38BBB59D064DBCB3D84D725612B36462313325"
 
 ARG IMAGE_VERSION=dev
@@ -60,6 +63,18 @@ RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
     && rm -rf /tmp/mise /tmp/mise.tgz /tmp/SHASUMS256.txt \
     && mise --version
 
+RUN arch="$(dpkg --print-architecture)" \
+    && case "$arch" in \
+      amd64) want="${YQ_SHA256_AMD64}" ;; \
+      arm64) want="${YQ_SHA256_ARM64}" ;; \
+      *) exit 1 ;; \
+    esac \
+    && curl -fsSL "https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_${arch}" -o /tmp/yq \
+    && echo "${want}  /tmp/yq" | sha256sum -c - \
+    && install -m 0755 /tmp/yq /usr/local/bin/yq \
+    && rm -f /tmp/yq \
+    && yq --version
+
 RUN fetch() { git init -q "$3" && git -C "$3" fetch -q --depth=1 "$1" "$2" && git -C "$3" checkout -q FETCH_HEAD && rm -rf "$3/.git"; } \
     && fetch https://github.com/ohmyzsh/ohmyzsh.git "${OHMYZSH_COMMIT}" /opt/devbox-skel/.oh-my-zsh \
     && fetch https://github.com/romkatv/powerlevel10k.git "${POWERLEVEL10K_COMMIT}" \
@@ -74,6 +89,7 @@ COPY --chmod=0755 base/provision.sh /usr/local/bin/provision.sh
 COPY --chmod=0755 base/xclip-shim.sh /usr/local/bin/xclip
 COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
 COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
+COPY --chmod=0755 base/capsule-git.sh /usr/local/bin/capsule-git
 COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh

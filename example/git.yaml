@@ -1,0 +1,16 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/NordHero/fenix-images/main/schema/git.schema.json
+# Optional git identity and repos for this capsule. Mount at
+# /home/dev/.capsule-git.yaml (see compose.yaml). Applied on every start;
+# `capsule-sync` clones missing repos into ~/workspace/<dir> after `gh auth login`.
+version: 1
+# identity:
+#   name: Ada Lovelace
+#   email: ada@example.com
+# repos:
+#   fenix-images:
+#     url: https://github.com/NordHero/fenix-images.git
+#     branch: main
+#   hello:
+#     url: https://github.com/octocat/Hello-World.git
+#     identity:
+#       email: ada@other.example
