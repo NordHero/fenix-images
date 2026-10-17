@@ -638,7 +638,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        agent: [claude-code, copilot]
+        agent: [claude-code, copilot, kiro-cli]
         platform: [linux/amd64, linux/arm64]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -672,6 +672,10 @@ jobs:
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'copilot --version'
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
               ;;
+            kiro-cli)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'kiro-cli --version'
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
+              ;;
           esac
 
       - name: Clean up
@@ -699,7 +703,7 @@ jobs:
             --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
             --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --build-arg "CLOUD_CLIS=" \
-            --build-arg "CODING_AGENTS=claude-code copilot" \
+            --build-arg "CODING_AGENTS=claude-code copilot kiro-cli" \
             --target agents -t fenix-base:agents-cc .
 
       - name: Assert agents resolve, no node, seed + home-copy model
@@ -712,6 +716,9 @@ jobs:
             copilot --version
             test -x /opt/capsule/agents/copilot/copilot
             test "$(readlink -f "$(command -v copilot)")" = "/opt/capsule/agents/copilot/copilot"
+            kiro-cli --version
+            test -x /opt/capsule/agents/kiro-cli/kiro-cli
+            test "$(readlink -f "$(command -v kiro-cli)")" = "/opt/capsule/agents/kiro-cli/kiro-cli"
             ! command -v node
           '
 
@@ -720,6 +727,7 @@ jobs:
           docker run --rm --entrypoint capsule-tools fenix-base:agents-cc list | tee /tmp/agents.txt
           grep -q '^claude-code ' /tmp/agents.txt
           grep -q '^copilot ' /tmp/agents.txt
+          grep -q '^kiro-cli ' /tmp/agents.txt
 
       - name: Tamper test (wrong checksum must fail the build)
         run: |

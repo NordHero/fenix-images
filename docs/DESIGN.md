@@ -52,6 +52,8 @@ each tool layer is a no-op when its selection is empty.
   - `copilot` — standalone binary from the `github/copilot-cli` releases,
     verified against the SHA-256 pinned here from the release `SHA256SUMS.txt`
     (checksum-only); embeds its own runtime, no Node.
+  - `kiro-cli` — release tarball from `prod.download.cli.kiro.dev`, verified
+    against the SHA-256 pinned here from the stable manifest (checksum-only).
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
   owns pinned, per-capsule tool and Python versions on top of the base Python.
