@@ -3,5 +3,6 @@
   "tool.aws": 955869601,
   "tool.gcloud": 487113770,
   "tool.az": 810419411,
-  "tool.claude-code": 364706474
+  "tool.claude-code": 364706474,
+  "tool.copilot": 595439880
 }

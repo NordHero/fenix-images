@@ -54,7 +54,7 @@ latest_github_release() {
 #   <tool>_apply     -> edits the pin in place (version/checksum only)
 #   <tool>_refs      -> prints an issue/notes reference line for the PR body
 
-TOOLS="mise claude-code"
+TOOLS="mise claude-code copilot"
 
 mise_current() {
   sed -n 's/^ARG MISE_VERSION=\(.*\)$/\1/p' "$dockerfile" | head -n1
@@ -90,6 +90,29 @@ claude-code_apply() {
 }
 claude-code_refs() {
   printf 'Checksums are refreshed from the release manifest; the channel and verification method are unchanged.'
+}
+
+copilot_file="${repo_root}/vendor/tools/copilot.sh"
+copilot_current() {
+  sed -n 's/^COPILOT_VERSION="\(.*\)"$/\1/p' "$copilot_file" | head -n1
+}
+copilot_latest() {
+  latest_github_release "github/copilot-cli" | sed 's/^v//'
+}
+copilot_apply() {
+  version="$1"
+  sums="$(curl -fsSL "https://github.com/github/copilot-cli/releases/download/v${version}/SHA256SUMS.txt")"
+  amd64="$(printf '%s\n' "$sums" | awk '$2=="copilot-linux-x64.tar.gz"{print $1}')"
+  arm64="$(printf '%s\n' "$sums" | awk '$2=="copilot-linux-arm64.tar.gz"{print $1}')"
+  [ -n "$amd64" ] && [ -n "$arm64" ] || die "could not read copilot checksums for ${version}"
+  sed -i \
+    -e "s/^COPILOT_VERSION=.*/COPILOT_VERSION=\"${version}\"/" \
+    -e "s/^COPILOT_SHA256_AMD64=.*/COPILOT_SHA256_AMD64=\"${amd64}\"/" \
+    -e "s/^COPILOT_SHA256_ARM64=.*/COPILOT_SHA256_ARM64=\"${arm64}\"/" \
+    "$copilot_file"
+}
+copilot_refs() {
+  printf 'Checksums are refreshed from the release SHA256SUMS.txt; the channel and verification method are unchanged.'
 }
 
 # --------------------------------------------------------------------------
