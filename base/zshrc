@@ -98,6 +98,12 @@ if [[ -o interactive ]]; then
     unset _capsule_updates
   fi
 
+  if [[ "${CAPSULE_TOOLS_NOTICE:-1}" != "0" ]] && command -v capsule-info >/dev/null 2>&1; then
+    _capsule_tools="$(capsule-info --tools-summary 2>/dev/null)"
+    [[ -n "$_capsule_tools" ]] && print -P "%F{8}${_capsule_tools}%f"
+    unset _capsule_tools
+  fi
+
   if [[ -f "$HOME/.capsule-welcome" ]]; then
     tr -d '\000-\010\013-\037\177' <"$HOME/.capsule-welcome"
   elif [[ -n "${CAPSULE_WELCOME:-}" ]]; then

@@ -119,7 +119,13 @@ builds, real values injected by CI):
   `.created`/`.source`) — inspectable from the host with `docker inspect`,
   no exec needed.
 
-Run `capsule-info` inside a capsule to print the summary and the JSON.
+Run `capsule-info` inside a capsule to print the provenance summary and JSON,
+the pending-updates line, and the installed tools — both the image tools (cloud
+CLIs + agents, with their resolved path, origin, and version) and the mise
+tools declared in `mise.toml`. The `origin` column flags a `mise-SHADOWING`
+copy that is masking a verified image tool (e.g. left over on an older home
+volume). The login banner shows a one-line `N image + M mise` count
+(`CAPSULE_TOOLS_NOTICE=0` to hide).
 
 ## Git identity and repositories
 
@@ -337,6 +343,7 @@ shell, **command** = when that command runs. Values set under `environment:` in
 | `CAPSULE_WELCOME` | unset | shell | One-line login banner. Ignored when `~/.capsule-welcome` exists. Control characters except tab and newline are stripped. |
 | `CAPSULE_KEYRING_PROMPT` | `1` | shell | `0` skips running `capsule-unlock` at shell start. |
 | `CAPSULE_UPDATE_NOTICE` | `1` | shell | `0` hides the `capsule-updates` one-line summary from the login banner. |
+| `CAPSULE_TOOLS_NOTICE` | `1` | shell | `0` hides the installed-tools count (`N image + M mise`) from the login banner. |
 | `CAPSULE_UPDATE_MAX_AGE_DAYS` | unset | shell, command | When set, `capsule-updates` flags the image as older than this many days. |
 | `CAPSULE_TERM_COLORS` | value of `CAPSULE_ITERM_PROFILE_SWITCH` | shell | `0` disables the portable Dracula color switch (OSC 4/10/11/...). |
 | `CAPSULE_ITERM_PROFILE_SWITCH` | `1` | shell | `0` disables the iTerm2 profile switch; also disables the color switch unless `CAPSULE_TERM_COLORS` is set. |

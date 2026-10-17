@@ -877,7 +877,7 @@ jobs:
             test -n "$ulb" && test -n "$shim" && test "$ulb" -lt "$shim"
           '
 
-      - name: Assert a registered tool in mise.toml is denied and the vendor copy wins
+      - name: Assert denial, vendor copy wins, and capsule-info lists image + mise tools
         run: |
           set -ex
           printf '%s\n' '[tools]' 'aws-cli = "latest"' 'uv = "0.13.0"' > /tmp/deny.toml
@@ -897,14 +897,15 @@ jobs:
             # A non-registered tool is still installed.
             eval "$(mise activate bash)"
             uv --version
+            # capsule-info lists both image tools and the mise tool.
+            info="$(capsule-info)"
+            printf "%s\n" "$info" | grep -q "Image tools"
+            printf "%s\n" "$info" | grep -qE "^aws +image-seed"
+            printf "%s\n" "$info" | grep -q "mise tools"
+            printf "%s\n" "$info" | grep -qE "^uv +0\."
+            capsule-info --tools-summary | grep -qE "tools: [0-9]+ image \+ [0-9]+ mise"
           '
           docker rm -f fdeny
-
-      - name: Assert capsule-info reports the registered tool
-        run: |
-          docker run --rm --entrypoint capsule-info fenix-base:denylist | tee /tmp/info.txt
-          grep -q 'Registered tools:' /tmp/info.txt
-          grep -qE '^aws .*image-seed' /tmp/info.txt
 
   size-report:
     needs: [changes, validate-config]
