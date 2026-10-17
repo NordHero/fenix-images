@@ -1,16 +1,20 @@
 # fenix-images
 
-A single, minimal, non-root **development base image** with
-[mise](https://mise.jdx.dev) baked in, plus a ready-to-copy capsule template.
-You don't build a custom image per project — you declare the tools you want in a
-`mise.toml`, and they are installed into the capsule's home volume on first
-start.
+A single, minimal, non-root **development base image** that layers optional
+cloud CLIs, coding agents and [mise](https://mise.jdx.dev) on top via
+multi-stage build targets, plus a ready-to-copy capsule template. You don't
+build a custom image per project — you pick a target and declare the developer
+tools you want in a `mise.toml`, and they are installed into the capsule's home
+volume on first start.
 
-> **Note:** mise is a supply-chain dependency you opt into — mise and its
-> backends become a trust anchor for everything a capsule installs. Weigh that
-> for your threat model. You can always build and use your own image instead:
-> adapt the [`Dockerfile`](Dockerfile), or point `image:` in a capsule's
-> `compose.yaml` at any image you build.
+> **Note:** mise is an **opt-in** supply-chain dependency — in the `mise`
+> target, mise and its backends become a trust anchor for every developer tool
+> a capsule installs through `[tools]`. Credential-bearing cloud CLIs and coding
+> agents do not go through mise; they are built in from vendor channels against
+> pinned anchors (see [`docs/IMAGES.md`](docs/IMAGES.md)). Weigh the mise trust
+> anchor for your threat model. You can always build your own image instead:
+> adapt the [`Dockerfile`](Dockerfile), or point a capsule's `build:`/`image:`
+> at any image you build.
 
 It is self-contained — usable with nothing but `docker compose`.
 
@@ -31,10 +35,13 @@ This repo (clone + build once)         A capsule (a folder you own)
 ```
 
 The base image is `ubuntu:24.04` with a non-root `dev` user, zsh +
-Powerlevel10k, `gh`, a keyring vault, editors, and mise. mise installs the tools
-you declare into the home volume on first boot; the volume persists, so later
-starts are instant. See [`docs/DESIGN.md`](docs/DESIGN.md) for the full runtime
-behavior and [`docs/TOOLS.md`](docs/TOOLS.md) for declaring tools.
+Powerlevel10k, `gh`, a keyring vault, and editors; the `mise` target adds mise,
+which installs the developer tools you declare into the home volume on first
+boot (the volume persists, so later starts are instant). Optional `cloud-ops`
+and `agents` layers add cloud CLIs and coding agents from verified vendor
+channels. See [`docs/IMAGES.md`](docs/IMAGES.md) for the image structure and how
+to choose a configuration, [`docs/DESIGN.md`](docs/DESIGN.md) for the full
+runtime behavior, and [`docs/TOOLS.md`](docs/TOOLS.md) for declaring tools.
 
 ## Get started
 

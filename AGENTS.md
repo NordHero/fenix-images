@@ -8,7 +8,10 @@ doc; everything else is written for humans.
 1. **No comments in code files.** Dockerfiles and shell scripts contain plain
    code only (shebang allowed). Put explanations in docs, not inline.
 2. **Docs are compact and factual.** State what is. Omit history, decision
-   narration, and verbose justification.
+   narration, and verbose justification. The one exception is
+   [`docs/IMAGES.md`](docs/IMAGES.md), which deliberately records the structure
+   rationale and rejected alternatives; keep the *why* there and link to it
+   from other docs rather than repeating it.
 3. **No secrets.** Credentials never live in the image or the repo; they stay in
    the home volume (`/home/dev`) at runtime, authenticated by the user.
 4. **No AI attribution.** Commit messages and PR descriptions carry no
@@ -67,8 +70,9 @@ their capsules. No image is published.
   boots to confirm the model works. `example/mise.toml` is intentionally
   minimal (a single declared tool); keep it simple — richer toolsets belong in
   consumers' own capsules, not here.
-- `docs/` — human depth: `DESIGN.md` (runtime behavior), `TOOLS.md` (declaring
-  tools in `mise.toml`).
+- `docs/` — human depth: `IMAGES.md` (image structure, rationale, and choosing a
+  configuration — the one doc that keeps the *why*), `DESIGN.md` (runtime
+  behavior), `TOOLS.md` (declaring tools in `mise.toml`).
 - `.github/workflows/` — `build-images.yml` (PR/main: path classification,
   config + lock check, build + verify + scan, calls `verify-example.yml`, and
   the always-run `ci-ok` gate required on `main`),
@@ -105,6 +109,14 @@ afterwards: the verified build-time install is the seed and a home copy wins on
 
 ## Conventions
 
+- Image layering invariants (rationale in [`docs/IMAGES.md`](docs/IMAGES.md)):
+  no mise below the `mise` target; no Node anywhere except the opt-in `gemini`
+  agent's own path; exactly one Python on `PATH` (`/usr/bin/python3`, az's
+  bundled interpreter stays off `PATH`); a tool belongs in `cloud-ops`/`agents`
+  only if it is **critical** (stores credentials or acts autonomously),
+  otherwise it goes through mise `[tools]`; trust anchors (keys, fingerprints,
+  checksums-as-anchors) change only by human review in a PR, never by the
+  automated version bump.
 - Every environment variable the image or its scripts read is listed in
   `docs/DESIGN.md` under "Environment variables"; add or update its row in the
   same change.

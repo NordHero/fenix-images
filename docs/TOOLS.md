@@ -1,7 +1,17 @@
 # Defining tools
 
-A capsule's tools are declared in its `mise.toml`. Nothing is baked per image;
-mise installs what you declare into the home volume on first boot.
+A capsule's tools come in three tiers:
+
+- **Developer tools** (languages, linters, IaC and cluster tools) — declared in
+  the capsule's `mise.toml` and installed by mise into the home volume on first
+  boot (the `mise` target). Covered here.
+- **Cloud CLIs** (`aws`, `gcloud`, `az`) and **coding agents** (`claude-code`,
+  `copilot`, `kiro-cli`, `gemini`) — built into the image from vendor channels,
+  selected per capsule with the `CLOUD_CLIS` / `CODING_AGENTS` build args. See
+  [`IMAGES.md`](IMAGES.md) for the structure and
+  [`SECURITY.md`](../SECURITY.md) for anchors.
+
+This page covers the first tier.
 
 ## `[tools]` — mise-managed
 
@@ -54,8 +64,43 @@ Credential-bearing tools (the cloud CLIs `aws`, `gcloud`, `az` and the coding
 agents `claude-code`, `copilot`, `kiro-cli`, `gemini`) are **not** declared in
 `mise.toml`. They are built into the image from each vendor's channel against a
 pinned trust anchor, selected per capsule with the `CLOUD_CLIS` and
-`CODING_AGENTS` build args (see [`DESIGN.md`](DESIGN.md#image-targets) and
-[`SECURITY.md`](../SECURITY.md)).
+`CODING_AGENTS` build args:
+
+```yaml
+build:
+  context: <fenix-images checkout>
+  target: mise
+  args:
+    CLOUD_CLIS: "aws"
+    CODING_AGENTS: "claude-code"
+```
+
+See [`IMAGES.md`](IMAGES.md) for the decision guide, the per-tool table
+(channel, anchor strength, update model, approximate size) and recommended
+standard profiles, and [`SECURITY.md`](../SECURITY.md) for the trust model.
+
+## IaC and cluster tools — via mise
+
+terraform, opentofu, terragrunt, kubectl and helm go in `[tools]`, not an image
+layer: they consume credentials the cloud CLIs produce, are run by a human, and
+need per-project versions mise provides per directory. Prefer a backend that
+verifies signatures or attestations, pin the version, and commit the locks:
+
+```toml
+[tools]
+opentofu = "1.9.1"     # aqua backend verifies the cosign signature
+terraform = "1.16.5"   # HashiCorp GPG-signed SHA256SUMS
+kubectl = "1.37.1"
+helm = "3.17.0"
+```
+
+- Commit `mise.lock` (and `.mise/locks/` for `pypi:` tools) so mise rejects a
+  download whose checksum does not match.
+- Commit `.terraform.lock.hcl` so provider versions and hashes are pinned — the
+  providers and charts, not the CLI binary, are the real supply-chain surface.
+- Confirm what a tool's backend verifies before relying on it (e.g. OpenTofu via
+  `aqua:` carries a cosign signature; HashiCorp releases ship a GPG-signed
+  `SHA256SUMS`). A checksum-only backend is weaker; note it.
 
 ## Reproducibility
 
@@ -78,3 +123,18 @@ pinned trust anchor, selected per capsule with the `CLOUD_CLIS` and
 
 > The shipped `example/` is a clean template — `mise.toml` only, no committed
 > lock. Run `mise lock` in your own copy to pin and verify.
+
+## Reclaiming disk
+
+Each distinct image selection is a separate image above the shared base, and a
+base security update invalidates every layer above it, so superseded layers
+accumulate. Reclaim them periodically:
+
+```bash
+docker image prune        # dangling layers
+docker image prune -a     # also images no capsule references (re-pull/rebuild on next use)
+```
+
+Self-updated agent versions accumulate in the **home volume**, not the image
+(each claude-code update is ~285 MB). Remove old copies under
+`~/.local` in the capsule, or recreate the volume, when they pile up.
