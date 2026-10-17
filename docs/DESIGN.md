@@ -54,6 +54,12 @@ each tool layer is a no-op when its selection is empty.
     (checksum-only); embeds its own runtime, no Node.
   - `kiro-cli` — release tarball from `prod.download.cli.kiro.dev`, verified
     against the SHA-256 pinned here from the stable manifest (checksum-only).
+  - `gemini` (opt-in) — `npm ci` from a committed `vendor/gemini/package-lock.json`
+    (integrity hashes) into `/opt/gemini`, on a Node LTS runtime from
+    nodejs.org verified via its GPG-signed `SHASUMS256.txt.asc` and a pinned
+    per-arch SHA-256. Node lives under `/opt/gemini/node`, off `PATH`; only a
+    `gemini` wrapper is on `PATH`. Node is installed only when `gemini` is
+    selected.
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
   owns pinned, per-capsule tool and Python versions on top of the base Python.

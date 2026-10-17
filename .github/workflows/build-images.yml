@@ -638,7 +638,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        agent: [claude-code, copilot, kiro-cli]
+        agent: [claude-code, copilot, kiro-cli, gemini]
         platform: [linux/amd64, linux/arm64]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -675,6 +675,11 @@ jobs:
             kiro-cli)
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'kiro-cli --version'
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
+              ;;
+            gemini)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'gemini --version'
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'test -x /opt/gemini/node/bin/node'
               ;;
           esac
 
@@ -761,6 +766,75 @@ jobs:
           sarif_file: trivy-agents-cc.sarif
           category: trivy-agents-cc
 
+  gemini-full:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build agents with gemini (opt-in, Node scoped)
+        run: |
+          set -ex
+          docker build \
+            --build-arg "IMAGE_VERSION=ci" \
+            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "CLOUD_CLIS=" \
+            --build-arg "CODING_AGENTS=gemini" \
+            --target agents -t fenix-base:agents-gemini .
+
+      - name: Assert gemini resolves and Node is only under the gemini path
+        run: |
+          docker run --rm --entrypoint bash fenix-base:agents-gemini -lc '
+            set -ex
+            gemini --version
+            test -x /opt/gemini/node/bin/node
+            ! command -v node
+            IFS=":"
+            for d in $PATH; do
+              test ! -e "$d/node"
+            done
+          '
+
+      - name: Tamper test (wrong Node checksum must fail the build)
+        run: |
+          set -ex
+          sed -i 's/^NODE_SHA256_AMD64=.*/NODE_SHA256_AMD64="0000000000000000000000000000000000000000000000000000000000000000"/' vendor/tools/gemini.sh
+          if docker build \
+            --build-arg "CLOUD_CLIS=" \
+            --build-arg "CODING_AGENTS=gemini" \
+            --target agents -t fenix-base:gemini-tamper . ; then
+            echo "tampered Node checksum built successfully — verification is not enforced" >&2
+            exit 1
+          fi
+          git checkout -- vendor/tools/gemini.sh
+
+      - name: Trivy scan (agents gemini)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:agents-gemini
+          format: sarif
+          output: trivy-agents-gemini.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          timeout: 15m
+
+      - name: Upload Trivy SARIF (agents gemini)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-agents-gemini.sarif
+          category: trivy-agents-gemini
+
   size-report:
     needs: [changes, validate-config]
     if: needs.changes.outputs.vendor == 'true'
@@ -791,7 +865,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, agents-matrix, agents-full, size-report, verify-example]
+    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, agents-matrix, agents-full, gemini-full, size-report, verify-example]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

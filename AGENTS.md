@@ -42,7 +42,9 @@ their capsules. No image is published.
 - `vendor/` — the `capsule-tools` framework (`capsule-tools.sh`) and one file
   per build-time-installed tool under `vendor/tools/<name>.sh` (channel, pinned
   version/anchor, update model, install function). Verification is fatal; an
-  unknown tool or wrong anchor fails the build. Currently `aws`, `gcloud`, `az`.
+  unknown tool or wrong anchor fails the build. Currently `aws`, `gcloud`, `az`,
+  `claude-code`, `copilot`, `kiro-cli`, `gemini`. `vendor/gemini/` holds the
+  committed npm lockfile the `gemini` agent installs with `npm ci`.
 - `base/start.d/`, `base/zshrc.d/` — hook/snippet dirs run by the entrypoint and
   sourced by zshrc; `10-mise.*` live in the `mise` target.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,

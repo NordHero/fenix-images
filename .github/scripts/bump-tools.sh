@@ -54,7 +54,7 @@ latest_github_release() {
 #   <tool>_apply     -> edits the pin in place (version/checksum only)
 #   <tool>_refs      -> prints an issue/notes reference line for the PR body
 
-TOOLS="mise claude-code copilot kiro-cli"
+TOOLS="mise claude-code copilot kiro-cli gemini"
 
 mise_current() {
   sed -n 's/^ARG MISE_VERSION=\(.*\)$/\1/p' "$dockerfile" | head -n1
@@ -139,6 +139,30 @@ kiro-cli_apply() {
 }
 kiro-cli_refs() {
   printf 'Checksums are refreshed from the stable release manifest; the channel and verification method are unchanged.'
+}
+
+gemini_file="${repo_root}/vendor/tools/gemini.sh"
+gemini_current() {
+  sed -n 's/^NODE_VERSION="\(.*\)"$/\1/p' "$gemini_file" | head -n1
+}
+gemini_latest() {
+  curl -fsSL "https://nodejs.org/dist/index.json" \
+    | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(r["version"] for r in d if r["lts"]))'
+}
+gemini_apply() {
+  version="$1"
+  sums="$(curl -fsSL "https://nodejs.org/dist/${version}/SHASUMS256.txt")"
+  amd64="$(printf '%s\n' "$sums" | awk -v f="node-${version}-linux-x64.tar.xz" '$2==f{print $1}')"
+  arm64="$(printf '%s\n' "$sums" | awk -v f="node-${version}-linux-arm64.tar.xz" '$2==f{print $1}')"
+  [ -n "$amd64" ] && [ -n "$arm64" ] || die "could not read node checksums for ${version}"
+  sed -i \
+    -e "s/^NODE_VERSION=.*/NODE_VERSION=\"${version}\"/" \
+    -e "s/^NODE_SHA256_AMD64=.*/NODE_SHA256_AMD64=\"${amd64}\"/" \
+    -e "s/^NODE_SHA256_ARM64=.*/NODE_SHA256_ARM64=\"${arm64}\"/" \
+    "$gemini_file"
+}
+gemini_refs() {
+  printf 'Bumps the pinned Node LTS version and checksums for the gemini runtime; the GPG verification and the committed npm lockfile are unchanged. The @google/gemini-cli version is bumped separately by regenerating vendor/gemini/package-lock.json.'
 }
 
 # --------------------------------------------------------------------------

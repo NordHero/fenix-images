@@ -7,7 +7,7 @@ GROWTH_PCT="${GROWTH_PCT:-20}"
 OVERRIDE="${SIZE_OVERRIDE:-}"
 
 CLOUD_TOOLS="aws gcloud az"
-AGENT_TOOLS="claude-code copilot kiro-cli"
+AGENT_TOOLS="claude-code copilot kiro-cli gemini"
 
 commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
