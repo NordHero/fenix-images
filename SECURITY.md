@@ -72,6 +72,13 @@ mise and its backends are the trust point for `[tools]`:
   shipped `example/` is a clean template (`mise.toml` only) — lock it in your
   own copy.
 
+The cloud CLIs in the `cloud-ops` layer (`aws`, `gcloud`, `az`) are a
+**higher trust tier**: each is installed at build time from the vendor's own
+channel and verified against an anchor pinned in `vendor/tools/<name>.sh`
+(`aws` by the AWS CLI Team PGP signature; `gcloud` and `az` by their apt signing
+key fingerprints). Verification is fatal — a tampered download or a wrong
+anchor fails the build. Anchors change only by human review of a PR.
+
 `EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
 installed by the vendor's own script. The base image supports `kiro-cli`, whose
 installer verifies its own checksums but is not verified by mise or this repo.

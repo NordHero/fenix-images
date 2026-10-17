@@ -37,7 +37,12 @@ their capsules. No image is published.
 - `Dockerfile` — multi-stage image, targets `base` → `cloud-ops` → `agents` →
   `mise` (base is OS + eye-candy; mise is the last layer). Root context.
 - `base/cloud-ops.sh`, `base/agents.sh` — per-target dispatchers; no-op when
-  their selection (`CLOUD_CLIS` / `CODING_AGENTS`) is empty.
+  their selection (`CLOUD_CLIS` / `CODING_AGENTS`) is empty. `cloud-ops.sh`
+  delegates to `capsule-tools`.
+- `vendor/` — the `capsule-tools` framework (`capsule-tools.sh`) and one file
+  per build-time-installed tool under `vendor/tools/<name>.sh` (channel, pinned
+  version/anchor, update model, install function). Verification is fatal; an
+  unknown tool or wrong anchor fails the build. Currently `aws`, `gcloud`, `az`.
 - `base/start.d/`, `base/zshrc.d/` — hook/snippet dirs run by the entrypoint and
   sourced by zshrc; `10-mise.*` live in the `mise` target.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,

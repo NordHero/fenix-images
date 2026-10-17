@@ -508,6 +508,88 @@ jobs:
           sarif_file: trivy-mise.sarif
           category: trivy-mise
 
+  cloud-ops:
+    needs: validate-config
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build cloud-ops with all CLIs
+        run: |
+          set -ex
+          docker build \
+            --build-arg "IMAGE_VERSION=ci" \
+            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "CLOUD_CLIS=aws gcloud az" \
+            --build-arg "CODING_AGENTS=" \
+            --target cloud-ops -t fenix-base:cloud-ops-all .
+
+      - name: Assert cloud CLIs and their Python
+        run: |
+          docker run --rm --entrypoint bash fenix-base:cloud-ops-all -lc '
+            set -ex
+            aws --version
+            aws --version 2>&1 | grep -qE "Python/3\.12\."
+            gcloud info 2>/dev/null | grep -qE "Python Location: \[/usr/bin/python3\]"
+            az version
+            test "$(command -v python3)" = "/usr/bin/python3"
+            test "$(readlink -f /usr/bin/python3)" = "$(readlink -f /bin/python3)"
+            # Exactly one python3 interpreter on PATH (az bundles its own in
+            # /opt/az, off PATH; gcloud bundled python excluded at install).
+            list="$(for d in ${PATH//:/ }; do
+              for f in "$d"/python3 "$d"/python3.[0-9] "$d"/python3.[0-9][0-9]; do
+                [ -x "$f" ] && readlink -f "$f"
+              done
+            done | sort -u)"
+            test "$(printf "%s\n" "$list" | grep -c .)" -eq 1
+          '
+
+      - name: Assert capsule-tools list
+        run: |
+          docker run --rm --entrypoint capsule-tools fenix-base:cloud-ops-all list | tee /tmp/tools.txt
+          grep -q '^aws ' /tmp/tools.txt
+          grep -q '^gcloud ' /tmp/tools.txt
+          grep -q '^az ' /tmp/tools.txt
+
+      - name: Tamper test (wrong anchor must fail the build)
+        run: |
+          set -ex
+          sed -i 's/^AZ_APT_FINGERPRINT=.*/AZ_APT_FINGERPRINT="0000000000000000000000000000000000000000"/' vendor/tools/az.sh
+          if docker build \
+            --build-arg "CLOUD_CLIS=az" \
+            --build-arg "CODING_AGENTS=" \
+            --target cloud-ops -t fenix-base:tamper . ; then
+            echo "tampered anchor built successfully — verification is not enforced" >&2
+            exit 1
+          fi
+          git checkout -- vendor/tools/az.sh
+
+      - name: Trivy scan (cloud-ops all)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:cloud-ops-all
+          format: sarif
+          output: trivy-cloud-ops-all.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          timeout: 15m
+
+      - name: Upload Trivy SARIF (cloud-ops all)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-cloud-ops-all.sarif
+          category: trivy-cloud-ops-all
+
   verify-example:
     needs: changes
     if: needs.changes.outputs.example == 'true'
@@ -518,7 +600,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, validate-config, build, verify-example]
+    needs: [changes, validate-config, build, cloud-ops, verify-example]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

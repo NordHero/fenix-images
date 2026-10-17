@@ -111,6 +111,8 @@ ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 FROM base AS cloud-ops
 ARG CLOUD_CLIS=""
 COPY --chmod=0755 base/cloud-ops.sh /usr/local/bin/cloud-ops.sh
+COPY --chmod=0755 vendor/capsule-tools.sh /usr/local/bin/capsule-tools
+COPY vendor/tools/ /usr/local/share/capsule-tools/tools/
 USER root
 RUN CLOUD_CLIS="${CLOUD_CLIS}" /usr/local/bin/cloud-ops.sh
 USER ${DEV_USER}

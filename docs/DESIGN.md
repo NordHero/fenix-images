@@ -26,7 +26,20 @@ each tool layer is a no-op when its selection is empty.
   mise, no other language runtimes or cloud tools. The entrypoint runs
   executable hooks in `/etc/capsule/start.d/` and zsh sources
   `/etc/capsule/zshrc.d/*.zsh`.
-- **cloud-ops** — selected cloud CLIs (`CLOUD_CLIS`).
+- **cloud-ops** — selected cloud CLIs (`CLOUD_CLIS`, space-separated subset of
+  `aws gcloud az`), installed at build time by the `capsule-tools` framework
+  from each vendor's channel against a pinned trust anchor; any failed
+  verification or unknown tool fails the build. `capsule-tools list` shows the
+  available tools, their layer, anchor and approximate size.
+  - `aws` — built from the signed source release
+    (`awscli.amazonaws.com/awscli.tar.gz` + `.sig`, verified against the AWS CLI
+    Team PGP key) with `--with-install-type=system-sandbox --with-download-deps`
+    (deps hash-pinned by AWS); runs on the system `/usr/bin/python3` (3.12).
+  - `gcloud` — Google apt repo (`google-cloud-cli`, key fingerprint pinned); the
+    bundled interpreter is excluded via a dpkg `path-exclude` and
+    `CLOUDSDK_PYTHON=/usr/bin/python3` is set.
+  - `az` — Microsoft apt repo (`azure-cli`, key fingerprint pinned); its bundled
+    interpreter stays in `/opt/az`, off `PATH`.
 - **agents** — selected coding agents (`CODING_AGENTS`).
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
@@ -334,6 +347,7 @@ Not meant to be overridden.
 | `PATH` | mise shims, `~/.local/bin`, `/usr/local/bin` first | Tools installed by mise and `extra-tools.sh` resolve first. |
 | `DEV_USER`, `DEV_UID`, `DEV_GID`, `DEV_HOME` | `dev`, `1000`, `1000`, `/home/dev` | Build-time user layout; changing them at runtime has no effect. |
 | `DEBIAN_FRONTEND` | `noninteractive` | Non-interactive apt during the build. |
+| `CLOUDSDK_PYTHON` | `/usr/bin/python3` | Only when `gcloud` is in `CLOUD_CLIS`: pins gcloud to the system Python. Set in `/etc/profile.d` and `zshrc.d`. |
 
 The entrypoint writes `DBUS_SESSION_BUS_ADDRESS`, `GNOME_KEYRING_CONTROL`, and
 `SSH_AUTH_SOCK` to `~/.keyring-env`, which shells and the `gh` wrapper source.
@@ -346,6 +360,9 @@ The entrypoint writes `DBUS_SESSION_BUS_ADDRESS`, `GNOME_KEYRING_CONTROL`, and
 |---|---|---|
 | `REGISTRY` | `fenix` | Image name prefix: `<REGISTRY>-base:<TAG>`. |
 | `TAG` | `local` | Image tag. |
+| `TARGET` | `mise` | Dockerfile target to build (`base`, `cloud-ops`, `agents`, `mise`). |
+| `CLOUD_CLIS` | empty | Space-separated subset of `aws gcloud az` built into the `cloud-ops` layer. |
+| `CODING_AGENTS` | empty | Space-separated coding agents built into the `agents` layer. |
 | `IMAGE_VERSION` | `dev` | Build arg; see [Provenance](#provenance). |
 | `SOURCE_COMMIT` | short `git` HEAD, else `unknown` | Build arg; see [Provenance](#provenance). |
 | `BUILD_DATE` | current UTC time | Build arg; see [Provenance](#provenance). |
