@@ -24,6 +24,7 @@ jobs:
     outputs:
       code: ${{ steps.diff.outputs.code }}
       example: ${{ steps.diff.outputs.example }}
+      vendor: ${{ steps.diff.outputs.vendor }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -39,12 +40,14 @@ jobs:
           if [ "$EVENT" != "pull_request" ]; then
             echo "code=true" >>"$GITHUB_OUTPUT"
             echo "example=false" >>"$GITHUB_OUTPUT"
+            echo "vendor=true" >>"$GITHUB_OUTPUT"
             exit 0
           fi
           files="$(git diff --name-only "$BASE" HEAD)"
           printf '%s\n' "$files"
           code=false
           example=false
+          vendor=false
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
@@ -54,9 +57,13 @@ jobs:
             case "$f" in
               example/* | base/* | Dockerfile | extra-tools.sh | build-images.sh | .github/workflows/build-images.yml | .github/workflows/verify-example.yml) example=true ;;
             esac
+            case "$f" in
+              vendor/* | Dockerfile | .github/workflows/build-images.yml | .github/scripts/image-size-report.sh | .github/sizes.json) vendor=true ;;
+            esac
           done <<<"$files"
           echo "code=$code" >>"$GITHUB_OUTPUT"
           echo "example=$example" >>"$GITHUB_OUTPUT"
+          echo "vendor=$vendor" >>"$GITHUB_OUTPUT"
 
   validate-config:
     needs: changes
@@ -508,8 +515,60 @@ jobs:
           sarif_file: trivy-mise.sarif
           category: trivy-mise
 
-  cloud-ops:
-    needs: validate-config
+  install-matrix:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [aws, gcloud, az]
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build ${{ matrix.tool }} on ${{ matrix.platform }}
+        run: |
+          set -ex
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --build-arg "CLOUD_CLIS=${{ matrix.tool }}" \
+            --build-arg "CODING_AGENTS=" \
+            --target cloud-ops -t "fenix-cell:${{ matrix.tool }}" --load .
+
+      - name: Assert ${{ matrix.tool }} runs
+        run: |
+          set -ex
+          img="fenix-cell:${{ matrix.tool }}"
+          plat="${{ matrix.platform }}"
+          case "${{ matrix.tool }}" in
+            aws)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'aws --version 2>&1 | grep -qE "Python/3\.12\."'
+              ;;
+            gcloud)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'gcloud info 2>/dev/null | grep -qE "Python Location: \[/usr/bin/python3\]"'
+              ;;
+            az)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'az version'
+              ;;
+          esac
+
+      - name: One python on PATH (${{ matrix.tool }})
+        run: ./.github/scripts/check-single-python.sh "fenix-cell:${{ matrix.tool }}"
+
+      - name: Clean up
+        if: always()
+        run: docker image rm "fenix-cell:${{ matrix.tool }}" 2>/dev/null || true
+
+  cloud-ops-full:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -535,21 +594,13 @@ jobs:
         run: |
           docker run --rm --entrypoint bash fenix-base:cloud-ops-all -lc '
             set -ex
-            aws --version
             aws --version 2>&1 | grep -qE "Python/3\.12\."
             gcloud info 2>/dev/null | grep -qE "Python Location: \[/usr/bin/python3\]"
             az version
-            test "$(command -v python3)" = "/usr/bin/python3"
-            test "$(readlink -f /usr/bin/python3)" = "$(readlink -f /bin/python3)"
-            # Exactly one python3 interpreter on PATH (az bundles its own in
-            # /opt/az, off PATH; gcloud bundled python excluded at install).
-            list="$(for d in ${PATH//:/ }; do
-              for f in "$d"/python3 "$d"/python3.[0-9] "$d"/python3.[0-9][0-9]; do
-                [ -x "$f" ] && readlink -f "$f"
-              done
-            done | sort -u)"
-            test "$(printf "%s\n" "$list" | grep -c .)" -eq 1
           '
+
+      - name: One python on PATH (all CLIs)
+        run: ./.github/scripts/check-single-python.sh fenix-base:cloud-ops-all
 
       - name: Assert capsule-tools list
         run: |
@@ -590,6 +641,26 @@ jobs:
           sarif_file: trivy-cloud-ops-all.sarif
           category: trivy-cloud-ops-all
 
+  size-report:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Free up runner disk
+        run: |
+          sudo rm -rf /usr/local/lib/android /opt/ghc /usr/share/dotnet || true
+          docker image prune -af || true
+
+      - name: Per-tool and per-target size report
+        env:
+          SIZE_OVERRIDE: ${{ contains(github.event.pull_request.labels.*.name, 'size-growth-ok') && '1' || '' }}
+        run: ./.github/scripts/image-size-report.sh
+
   verify-example:
     needs: changes
     if: needs.changes.outputs.example == 'true'
@@ -600,7 +671,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, validate-config, build, cloud-ops, verify-example]
+    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, size-report, verify-example]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

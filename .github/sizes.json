@@ -1,0 +1,6 @@
+{
+  "note": "Per-tool cloud-ops layer size in bytes (amd64), baseline for the >20% growth gate in .github/workflows/build-images.yml. Update deliberately when a size change is expected.",
+  "tool.aws": 955869601,
+  "tool.gcloud": 487113770,
+  "tool.az": 810419411
+}
