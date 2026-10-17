@@ -99,6 +99,35 @@ refuses `[tools]` entries that match the `capsule-tools` registry (reported as
 is a best-effort guard rail, not a security boundary: a dev can still bypass it
 with `npm i -g`, `pip install`, or a manual download.
 
+### Per-tool channel and anchor strength
+
+| Tool | Layer | Channel | Anchor | Self-update |
+|---|---|---|---|---|
+| `aws` | cloud-ops | signed source release | **signature** (AWS CLI Team PGP) | no |
+| `gcloud` | cloud-ops | Google apt repo | **apt signature** (pinned key fingerprint) | no |
+| `az` | cloud-ops | Microsoft apt repo | **apt signature** (pinned key fingerprint) | no |
+| `claude-code` | agents | `downloads.claude.ai` | **checksum-only** (pinned, TLS manifest) | yes |
+| `copilot` | agents | `github/copilot-cli` release | **checksum-only** (pinned `SHA256SUMS.txt`) | yes |
+| `kiro-cli` | agents | `prod.download.cli.kiro.dev` | **checksum-only** (pinned, TLS manifest) | yes |
+| `gemini` | agents | npm (`npm ci` from committed lockfile) | **npm integrity** over **GPG-signed** Node | yes |
+
+Checksum-only means the vendor publishes no signature or attestation we can
+verify; the binary is checked against the SHA-256 the vendor serves over TLS and
+pinned in this repo. The self-updating agents trade tamper resistance for
+staying current (see above). The cloud CLIs do not self-update; they refresh via
+a bump PR plus a rebuild.
+
+**One Python on `PATH`.** Exactly one interpreter is on `PATH`, Ubuntu's
+`/usr/bin/python3`. `az` bundles its own interpreter but keeps it in `/opt/az`,
+off `PATH` (the one allowed exception); gcloud's bundled interpreter is excluded
+at install. CI asserts this. **Node** is installed only for the opt-in `gemini`
+agent, off `PATH` under `/opt/gemini/node`; its npm dependency tree is pinned by
+a committed lockfile with integrity hashes.
+
+The rationale for all of this — threat model, layering, channel preference, the
+self-update and one-Python decisions, and the alternatives rejected — is in
+[`docs/IMAGES.md`](docs/IMAGES.md).
+
 ## Build inputs
 
 | Input | Pinning |

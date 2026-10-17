@@ -10,7 +10,9 @@ All supported variables are listed under
 The `Dockerfile` is multi-stage with four targets, each built on the previous:
 `base` → `cloud-ops` → `agents` → `mise`. A capsule selects a target and its
 tools in `compose.yaml` (`build.target` + `CLOUD_CLIS` / `CODING_AGENTS` args);
-each tool layer is a no-op when its selection is empty.
+each tool layer is a no-op when its selection is empty. For why the image is
+layered this way and how to choose a configuration, see
+[`IMAGES.md`](IMAGES.md).
 
 - **base** — `ubuntu:24.04`, non-root `dev` user (UID/GID 1000). It carries zsh
   + Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
