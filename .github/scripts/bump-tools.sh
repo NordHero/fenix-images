@@ -54,7 +54,7 @@ latest_github_release() {
 #   <tool>_apply     -> edits the pin in place (version/checksum only)
 #   <tool>_refs      -> prints an issue/notes reference line for the PR body
 
-TOOLS="mise claude-code copilot"
+TOOLS="mise claude-code copilot kiro-cli"
 
 mise_current() {
   sed -n 's/^ARG MISE_VERSION=\(.*\)$/\1/p' "$dockerfile" | head -n1
@@ -113,6 +113,32 @@ copilot_apply() {
 }
 copilot_refs() {
   printf 'Checksums are refreshed from the release SHA256SUMS.txt; the channel and verification method are unchanged.'
+}
+
+kiro_cli_file="${repo_root}/vendor/tools/kiro-cli.sh"
+kiro-cli_current() {
+  sed -n 's/^KIRO_CLI_VERSION="\(.*\)"$/\1/p' "$kiro_cli_file" | head -n1
+}
+kiro-cli_manifest() {
+  curl -fsSL "https://prod.download.cli.kiro.dev/stable/latest/manifest.json"
+}
+kiro-cli_latest() {
+  kiro-cli_manifest | python3 -c 'import json,sys; print(json.load(sys.stdin)["version"])'
+}
+kiro-cli_apply() {
+  version="$1"
+  manifest="$(kiro-cli_manifest)"
+  amd64="$(printf '%s' "$manifest" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(p["sha256"] for p in d["packages"] if p["download"].endswith("kirocli-x86_64-linux.tar.gz")))')"
+  arm64="$(printf '%s' "$manifest" | python3 -c 'import json,sys; d=json.load(sys.stdin); print(next(p["sha256"] for p in d["packages"] if p["download"].endswith("kirocli-aarch64-linux.tar.gz")))')"
+  [ -n "$amd64" ] && [ -n "$arm64" ] || die "could not read kiro-cli checksums for ${version}"
+  sed -i \
+    -e "s/^KIRO_CLI_VERSION=.*/KIRO_CLI_VERSION=\"${version}\"/" \
+    -e "s/^KIRO_CLI_SHA256_AMD64=.*/KIRO_CLI_SHA256_AMD64=\"${amd64}\"/" \
+    -e "s/^KIRO_CLI_SHA256_ARM64=.*/KIRO_CLI_SHA256_ARM64=\"${arm64}\"/" \
+    "$kiro_cli_file"
+}
+kiro-cli_refs() {
+  printf 'Checksums are refreshed from the stable release manifest; the channel and verification method are unchanged.'
 }
 
 # --------------------------------------------------------------------------
