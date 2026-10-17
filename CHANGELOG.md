@@ -1,5 +1,34 @@
 # Changelog
 
+## [4.0.0](https://github.com/NordHero/fenix-images/compare/v3.1.0...v4.0.0) (2026-10-17)
+
+
+### ⚠ BREAKING CHANGES
+
+* capsules must build the image via `build:` with a `target:` instead of referencing a prebuilt `image:`. The example capsule is updated accordingly.
+* CAPSULE_REPOS, CAPSULE_REPOS_FILE, GIT_USER_NAME and GIT_USER_EMAIL are ignored. Declare repos and git identity in git.yaml mounted at /home/dev/.capsule-git.yaml. The legacy manifest's dir must now match ^[A-Za-z0-9_][A-Za-z0-9._-]{0,99}$.
+
+### Features
+
+* agents layer + claude-code; remove EXTRA_TOOLS ([#32](https://github.com/NordHero/fenix-images/issues/32)) ([#35](https://github.com/NordHero/fenix-images/issues/35)) ([521d42f](https://github.com/NordHero/fenix-images/commit/521d42f59a9d024e079c81e77ee04afaf4f3d54d))
+* capsule-info lists image + mise tools; fix formatting and node denial ([#42](https://github.com/NordHero/fenix-images/issues/42)) ([d5e8063](https://github.com/NordHero/fenix-images/commit/d5e806321d538367d1b190a9454ab4bc6e7ea6ba))
+* capsule-updates reports pending OS updates and image age ([#34](https://github.com/NordHero/fenix-images/issues/34)) ([#40](https://github.com/NordHero/fenix-images/issues/40)) ([2ffbbc1](https://github.com/NordHero/fenix-images/commit/2ffbbc155531c73460c995ba092a9eea279942b1))
+* cloud-ops layer (aws, gcloud, az) via capsule-tools ([#29](https://github.com/NordHero/fenix-images/issues/29)) ([#33](https://github.com/NordHero/fenix-images/issues/33)) ([a101066](https://github.com/NordHero/fenix-images/commit/a10106629ea1426131db8b7175a40d10a37522f2))
+* copilot agent (checksum-only, pinned) ([#32](https://github.com/NordHero/fenix-images/issues/32)) ([#36](https://github.com/NordHero/fenix-images/issues/36)) ([6d37944](https://github.com/NordHero/fenix-images/commit/6d37944ad1ec98f8ba34c8580822e1ba080d0d36))
+* deny mise [tools] that shadow registered cloud/agent tools ([#31](https://github.com/NordHero/fenix-images/issues/31)) ([#39](https://github.com/NordHero/fenix-images/issues/39)) ([8472048](https://github.com/NordHero/fenix-images/commit/84720489a53fec4c18baf581cd04f8f229ad4abd))
+* gemini agent (opt-in, scoped Node) ([#32](https://github.com/NordHero/fenix-images/issues/32)) ([#38](https://github.com/NordHero/fenix-images/issues/38)) ([7ee1431](https://github.com/NordHero/fenix-images/commit/7ee1431d6ba21f7149a67e03a14257d5d72d67e5))
+* git.yaml for capsule git identity and repos ([#27](https://github.com/NordHero/fenix-images/issues/27)) ([bca188b](https://github.com/NordHero/fenix-images/commit/bca188bf2b580034005222bd18074e490525d5e8))
+* install bubblewrap + socat (vendor-neutral local-sandbox backends) ([#24](https://github.com/NordHero/fenix-images/issues/24)) ([b6f2f06](https://github.com/NordHero/fenix-images/commit/b6f2f06d01f9c6bcb26c3c7b2261786387a865a6))
+* kiro-cli agent (checksum-only from manifest) ([#32](https://github.com/NordHero/fenix-images/issues/32)) ([#37](https://github.com/NordHero/fenix-images/issues/37)) ([83ab6aa](https://github.com/NordHero/fenix-images/commit/83ab6aaa36a1217c06f82a7ac29c7e3e55d9eb3d))
+* multi-stage image with base, cloud-ops, agents, mise targets ([#28](https://github.com/NordHero/fenix-images/issues/28)) ([#32](https://github.com/NordHero/fenix-images/issues/32)) ([38a0f5a](https://github.com/NordHero/fenix-images/commit/38a0f5aeb8e9b1f1f692bd1e72d1bf018442ae52))
+* portable capsule colors and host terminal requirements ([#21](https://github.com/NordHero/fenix-images/issues/21)) ([38ce63c](https://github.com/NordHero/fenix-images/commit/38ce63c7dd4b1b528db9c7327fb4e8291271543f))
+
+
+### Bug Fixes
+
+* bake a system Python into the base image ([#26](https://github.com/NordHero/fenix-images/issues/26)) ([f46fd86](https://github.com/NordHero/fenix-images/commit/f46fd8608081bc7aa9fdc20b99bd820206b6c3ab))
+* **capsule-git:** include source location in validation errors ([#30](https://github.com/NordHero/fenix-images/issues/30)) ([b2289d9](https://github.com/NordHero/fenix-images/commit/b2289d901d5c657c15154d3732606b81d3f236b4))
+
 ## [3.1.0](https://github.com/NordHero/fenix-images/compare/v3.0.0...v3.1.0) (2026-10-14)
 
 
