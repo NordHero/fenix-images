@@ -7,6 +7,7 @@ GROWTH_PCT="${GROWTH_PCT:-20}"
 OVERRIDE="${SIZE_OVERRIDE:-}"
 
 CLOUD_TOOLS="aws gcloud az"
+AGENT_TOOLS="claude-code"
 
 commit="$(git rev-parse --short HEAD 2>/dev/null || echo unknown)"
 date="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -15,12 +16,13 @@ build() {
   target="$1"
   tag="$2"
   cloud="${3:-}"
+  agents="${4:-}"
   docker build \
     --build-arg "IMAGE_VERSION=size" \
     --build-arg "SOURCE_COMMIT=${commit}" \
     --build-arg "BUILD_DATE=${date}" \
     --build-arg "CLOUD_CLIS=${cloud}" \
-    --build-arg "CODING_AGENTS=" \
+    --build-arg "CODING_AGENTS=${agents}" \
     --target "$target" -t "$tag" . >/dev/null 2>&1
 }
 
@@ -64,6 +66,16 @@ for t in $CLOUD_TOOLS; do
   docker image rm "fenix-size:$t" >/dev/null 2>&1 || true
 done
 
+for a in $AGENT_TOOLS; do
+  echo "Building agents with $a..." >&2
+  build agents "fenix-size:$a" "" "$a"
+  full="$(size_bytes "fenix-size:$a")"
+  delta=$((full - base_bytes))
+  [ "$delta" -lt 0 ] && delta=0
+  tool_bytes["$a"]="$delta"
+  docker image rm "fenix-size:$a" >/dev/null 2>&1 || true
+done
+
 echo "Building all-in targets..." >&2
 build cloud-ops fenix-size:cloud-ops-all "$CLOUD_TOOLS"
 cloudall_bytes="$(size_bytes fenix-size:cloud-ops-all)"
@@ -75,14 +87,16 @@ mise_bytes="$(size_bytes fenix-size:mise)"
   echo
   echo "Commit \`${commit}\`."
   echo
-  echo "### Per-tool layer size (cloud-ops)"
+  echo "### Per-tool layer size"
   echo
-  echo "| Tool | Size added | Baseline | Growth |"
-  echo "|---|---|---|---|"
+  echo "| Tool | Layer | Size added | Baseline | Growth |"
+  echo "|---|---|---|---|---|"
 } >>"$SUMMARY"
 
 fail=0
-for t in $CLOUD_TOOLS; do
+report_tool() {
+  t="$1"
+  layer="$2"
   cur="${tool_bytes[$t]}"
   base_val="$(baseline_get "tool.$t")"
   if [ -n "$base_val" ] && [ "$base_val" -gt 0 ] 2>/dev/null; then
@@ -99,8 +113,11 @@ for t in $CLOUD_TOOLS; do
   else
     growth="(no baseline)"
   fi
-  echo "| $t | $(human "$cur") | $([ -n "$base_val" ] && human "$base_val" || echo -) | $growth |" >>"$SUMMARY"
-done
+  echo "| $t | $layer | $(human "$cur") | $([ -n "$base_val" ] && human "$base_val" || echo -) | $growth |" >>"$SUMMARY"
+}
+
+for t in $CLOUD_TOOLS; do report_tool "$t" cloud-ops; done
+for a in $AGENT_TOOLS; do report_tool "$a" agents; done
 
 {
   echo

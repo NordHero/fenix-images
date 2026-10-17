@@ -55,9 +55,6 @@ their capsules. No image is published.
   helper.
 - `schema/` — `git.schema.json`, the JSON Schema for `git.yaml`. Keep it and
   the runtime checks in `base/capsule-git.sh` in step.
-- `extra-tools.sh` — installs tools with no mise backend (currently only
-  `kiro-cli`); reads `EXTRA_TOOLS` from the mounted `mise.toml`. Tools with a
-  mise backend are declared in `[tools]` instead.
 - `build-images.sh` — builds the Dockerfile and tags it `fenix-base:local`
   (`REGISTRY=fenix`, `TAG=local` by default).
 - `example/` — the shipped example capsule (`compose.yaml` + `mise.toml`). It
@@ -91,9 +88,11 @@ provenance, `mise lock` digests). A `mise.toml` with `[env]` is untrusted until
 trusted; provisioning skips the mounted `mise.toml` until it is trusted
 (`CAPSULE_TRUST_MISE=1` or a manual `mise trust`).
 
-`EXTRA_TOOLS` are a **separate, lower trust tier**: vendor installers run over
-TLS but are not checksum- or signature-verified by this repo. Do not claim
-otherwise in docs. See `SECURITY.md`.
+Coding agents (`agents` layer) are installed at build time by `capsule-tools`
+against a pinned anchor (claude-code, copilot and kiro-cli are checksum-only;
+gemini uses npm integrity hashes over GPG-verified Node). They may self-update
+afterwards: the verified build-time install is the seed and a home copy wins on
+`PATH`. See `SECURITY.md`.
 
 ## Conventions
 
@@ -103,11 +102,11 @@ otherwise in docs. See `SECURITY.md`.
 - Non-root `dev` user (UID/GID 1000); home at `/home/dev`.
 - After changing `example/mise.toml`, run `mise lock` in `example/` and commit
   `mise.lock` and `.mise/locks/`; CI fails on drift. Never use `"latest"`.
-- Tool versions are pinned in `mise.toml`; `extra-tools.sh` supports
-  `tool@version` where the installer allows it.
-- Prefer a `[tools]` backend (`pypi:`, `aqua:`, `go:`, `ubi:`, `vfox:`, ...)
-  over `EXTRA_TOOLS`. Only tools with no backend (currently `kiro-cli`) belong
-  in `EXTRA_TOOLS`.
+- Tool versions are pinned in `mise.toml` (`[tools]`) or in the tool file under
+  `vendor/tools/` for cloud CLIs and agents.
+- Prefer a `[tools]` backend (`pypi:`, `aqua:`, `go:`, `ubi:`, `vfox:`, ...) for
+  developer tools; cloud CLIs and coding agents go in the `cloud-ops`/`agents`
+  layers via `capsule-tools`.
 - Image tag is `fenix-base:local` for the documented local build.
 - Provisioning is non-fatal; failures are reported via status markers and
   `~/.provisioned/`, not hidden (see `docs/DESIGN.md`).
@@ -117,8 +116,8 @@ otherwise in docs. See `SECURITY.md`.
 
 - `bash -n` on changed shell scripts; validate YAML/TOML; `hadolint` the
   Dockerfile.
-- Let CI build the image and assert the entrypoint plus one `[tools]` and one
-  `EXTRA_TOOLS` package provision and resolve.
+- Let CI build the image and assert the entrypoint plus one `[tools]` package
+  provision and resolve.
 - No stale legacy naming or root-`compose.yaml`/`mise.toml` references after
   structural changes.
 - Changes land via branches/PRs; releases are automated from `main`.

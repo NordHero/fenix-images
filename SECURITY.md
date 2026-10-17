@@ -79,11 +79,18 @@ channel and verified against an anchor pinned in `vendor/tools/<name>.sh`
 key fingerprints). Verification is fatal — a tampered download or a wrong
 anchor fails the build. Anchors change only by human review of a PR.
 
-`EXTRA_TOOLS` are a **separate, lower trust tier**: tools with no mise backend,
-installed by the vendor's own script. The base image supports `kiro-cli`, whose
-installer verifies its own checksums but is not verified by mise or this repo.
-Treat it as you would any `curl | bash` vendor installer; prefer a `[tools]`
-backend whenever one exists.
+The coding agents in the `agents` layer (`claude-code`, `copilot`, `kiro-cli`,
+and opt-in `gemini`) are installed at build time from each vendor's channel and
+verified against an anchor pinned in `vendor/tools/<name>.sh`. `claude-code`,
+`copilot` and `kiro-cli` are **checksum-only** (the vendors publish no
+signature or attestation we can verify; the binary is checked against the
+SHA-256 the vendor serves over TLS); `gemini` uses npm integrity hashes over a
+Node runtime verified by its GPG-signed `SHASUMS256.txt.asc`. Verification is
+fatal at build time. Agents are then allowed to **self-update**: the verified
+build-time install is a seed under `/opt/capsule/agents/<name>`, and a
+dev-writable home copy wins on `PATH`. This trades tamper resistance for
+staying current; a self-updated agent is no longer described by our pins or the
+image scan.
 
 ## Build inputs
 

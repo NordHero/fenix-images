@@ -55,7 +55,7 @@ jobs:
               *) code=true ;;
             esac
             case "$f" in
-              example/* | base/* | Dockerfile | extra-tools.sh | build-images.sh | .github/workflows/build-images.yml | .github/workflows/verify-example.yml) example=true ;;
+              example/* | base/* | Dockerfile | build-images.sh | .github/workflows/build-images.yml | .github/workflows/verify-example.yml) example=true ;;
             esac
             case "$f" in
               vendor/* | Dockerfile | .github/workflows/build-images.yml | .github/scripts/image-size-report.sh | .github/sizes.json) vendor=true ;;
@@ -149,7 +149,6 @@ jobs:
             yq --version
             bwrap --version
             socat -V >/dev/null
-            test -x /usr/local/bin/extra-tools.sh
             test -x /usr/local/bin/capsule-sync
             test -x /usr/local/bin/capsule-git
             test -x /usr/local/bin/capsule-info
@@ -179,7 +178,6 @@ jobs:
             test -d /opt/devbox-skel/.oh-my-zsh-custom/themes/powerlevel10k
             test -d /opt/devbox-skel/.oh-my-zsh
             test ! -d /usr/local/share/fonts/MesloLGS-NF
-            test -x /usr/local/bin/extra-tools.sh
             test -x /usr/local/bin/capsule-sync
             test -x /usr/local/bin/capsule-git
             yq --version
@@ -386,10 +384,10 @@ jobs:
           docker exec fenix-noaws bash -lc 'test ! -f "$HOME/.aws/config"'
           docker rm -f fenix-noaws
 
-      - name: Verify mise trust and single-tool provisioning (both mechanisms)
+      - name: Verify mise trust and single-tool provisioning
         run: |
           set -ex
-          printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "kiro-cli"' > /tmp/ci-mise.toml
+          printf '%s\n' '[tools]' 'uv = "latest"' > /tmp/ci-mise.toml
           docker run -d --name fenix-prov \
             -v "/tmp/ci-mise.toml:/home/dev/mise.toml:ro" \
             fenix-base:ci
@@ -403,25 +401,18 @@ jobs:
             for i in $(seq 1 30); do test -f "$HOME/.provisioned/status" && break; sleep 1; done
             grep -q "mise=untrusted" "$HOME/.provisioned/status"
             grep -q "mise: untrusted" "$HOME/.provisioned/last-run.log"
-            test ! -e "$HOME/.provisioned/kiro-cli"
             mise trust "$HOME/mise.toml"
             eval "$(mise activate bash)"
             mise ls --current >/dev/null
             mise install --yes
             uv --version
           '
-          docker exec -e EXTRA_TOOLS="kiro-cli" fenix-prov bash -lc '
-            set -ex
-            extra-tools.sh
-            command -v kiro-cli
-            kiro-cli --version
-          '
           docker rm -f fenix-prov
 
       - name: Verify provisioning is non-fatal (bad tool must not crash the container)
         run: |
           set -ex
-          printf '%s\n' '[tools]' 'uv = "latest"' '' '[env]' 'EXTRA_TOOLS = "definitely-not-a-tool"' > /tmp/ci-mise-bad.toml
+          printf '%s\n' '[tools]' 'uv = "99.99.99"' > /tmp/ci-mise-bad.toml
           docker run -d --name fenix-bad \
             -e CAPSULE_TRUST_MISE=1 \
             -v "/tmp/ci-mise-bad.toml:/home/dev/mise.toml:ro" \
@@ -437,8 +428,7 @@ jobs:
             set -ex
             test -f "$HOME/.provisioned/last-run.log"
             test -f "$HOME/.provisioned/status"
-            grep -q "extra-tool: definitely-not-a-tool: unknown" "$HOME/.provisioned/last-run.log"
-            grep -q "extra-tools: summary" "$HOME/.provisioned/last-run.log"
+            grep -q "mise: failed" "$HOME/.provisioned/last-run.log"
             grep -q "provision: summary" "$HOME/.provisioned/last-run.log"
           '
           docker rm -f fenix-bad
@@ -641,6 +631,120 @@ jobs:
           sarif_file: trivy-cloud-ops-all.sarif
           category: trivy-cloud-ops-all
 
+  agents-matrix:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        agent: [claude-code]
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build ${{ matrix.agent }} on ${{ matrix.platform }}
+        run: |
+          set -ex
+          docker buildx build \
+            --platform "${{ matrix.platform }}" \
+            --build-arg "CLOUD_CLIS=" \
+            --build-arg "CODING_AGENTS=${{ matrix.agent }}" \
+            --target agents -t "fenix-agent:${{ matrix.agent }}" --load .
+
+      - name: Assert ${{ matrix.agent }} resolves and no stray node
+        run: |
+          set -ex
+          img="fenix-agent:${{ matrix.agent }}"
+          plat="${{ matrix.platform }}"
+          case "${{ matrix.agent }}" in
+            claude-code)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'claude --version'
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
+              ;;
+          esac
+
+      - name: Clean up
+        if: always()
+        run: docker image rm "fenix-agent:${{ matrix.agent }}" 2>/dev/null || true
+
+  agents-full:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build agents with claude-code
+        run: |
+          set -ex
+          docker build \
+            --build-arg "IMAGE_VERSION=ci" \
+            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --build-arg "CLOUD_CLIS=" \
+            --build-arg "CODING_AGENTS=claude-code" \
+            --target agents -t fenix-base:agents-cc .
+
+      - name: Assert agents resolve, no node, seed + home-copy model
+        run: |
+          docker run --rm --entrypoint bash fenix-base:agents-cc -lc '
+            set -ex
+            claude --version
+            test -x /opt/capsule/agents/claude-code/claude
+            test "$(readlink -f "$(command -v claude)")" = "/opt/capsule/agents/claude-code/claude"
+            ! command -v node
+          '
+
+      - name: Assert capsule-tools lists the agent
+        run: |
+          docker run --rm --entrypoint capsule-tools fenix-base:agents-cc list | tee /tmp/agents.txt
+          grep -q '^claude-code ' /tmp/agents.txt
+
+      - name: Tamper test (wrong checksum must fail the build)
+        run: |
+          set -ex
+          sed -i 's/^CLAUDE_CODE_SHA256_AMD64=.*/CLAUDE_CODE_SHA256_AMD64="0000000000000000000000000000000000000000000000000000000000000000"/' vendor/tools/claude-code.sh
+          if docker build \
+            --build-arg "CLOUD_CLIS=" \
+            --build-arg "CODING_AGENTS=claude-code" \
+            --target agents -t fenix-base:agent-tamper . ; then
+            echo "tampered checksum built successfully — verification is not enforced" >&2
+            exit 1
+          fi
+          git checkout -- vendor/tools/claude-code.sh
+
+      - name: Trivy scan (agents claude-code)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:agents-cc
+          format: sarif
+          output: trivy-agents-cc.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+          timeout: 15m
+
+      - name: Upload Trivy SARIF (agents claude-code)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-agents-cc.sarif
+          category: trivy-agents-cc
+
   size-report:
     needs: [changes, validate-config]
     if: needs.changes.outputs.vendor == 'true'
@@ -671,7 +775,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, size-report, verify-example]
+    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, agents-matrix, agents-full, size-report, verify-example]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

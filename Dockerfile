@@ -81,7 +81,6 @@ COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
 COPY --chmod=0755 base/capsule-git.sh /usr/local/bin/capsule-git
 COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
-COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
 RUN mkdir -p /etc/capsule/start.d /etc/capsule/zshrc.d \
     && printf '{\n  "image_version": "%s",\n  "source_commit": "%s",\n  "build_date": "%s",\n  "base_os": "ubuntu:24.04"\n}\n' \

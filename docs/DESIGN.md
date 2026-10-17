@@ -40,7 +40,15 @@ each tool layer is a no-op when its selection is empty.
     `CLOUDSDK_PYTHON=/usr/bin/python3` is set.
   - `az` — Microsoft apt repo (`azure-cli`, key fingerprint pinned); its bundled
     interpreter stays in `/opt/az`, off `PATH`.
-- **agents** — selected coding agents (`CODING_AGENTS`).
+- **agents** — selected coding agents (`CODING_AGENTS`, space-separated),
+  installed at build time by `capsule-tools` against a pinned anchor; any failed
+  verification or unknown agent fails the build. Agents may self-update: the
+  verified build-time install is the seed in `/opt/capsule/agents/<name>`, and a
+  home copy (`~/.local/bin`, first on `PATH`) wins afterwards. Node is installed
+  only in this layer and only when `gemini` is selected.
+  - `claude-code` — native release from `downloads.claude.ai`, the binary
+    verified against the per-platform SHA-256 in the TLS-served `manifest.json`
+    (checksum-only; see [`SECURITY.md`](../SECURITY.md)).
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
   owns pinned, per-capsule tool and Python versions on top of the base Python.
@@ -165,8 +173,10 @@ is visible as `unhealthy` in `docker ps` rather than crash-looping.
 
 ## Provisioning
 
-`provision.sh` is the single, re-runnable provisioning entry point. The
-entrypoint calls it on start; it runs `mise install` then `extra-tools.sh`.
+`provision.sh` is the single, re-runnable provisioning entry point for the
+`mise` layer. The entrypoint runs it through the `start.d/10-mise.sh` hook on
+start; it runs `mise install`. Cloud CLIs and coding agents are not provisioned
+at runtime — they are built into the `cloud-ops` and `agents` image layers.
 
 **Trust.** A `mise.toml` runs code (`[env]`, hooks), and `mise install` trusts
 the config it reads. `provision.sh` therefore installs nothing until
@@ -180,14 +190,10 @@ Provisioning is **non-fatal**: a tool that fails to install no longer stops the
 container from starting — the environment always comes up, and the failure is
 reported instead of hidden. Re-run it any time with `provision.sh`.
 
-- **Status markers** (greppable in the logs): `mise: ok|failed|untrusted`, one
-  `extra-tool: <name>[@<ver>]: ok|failed|unknown` line per tool, a summary
-  `extra-tools: summary ok=N failed=M (failed: ...)`, and
-  `provision: summary mise=... extra-tools=...`.
+- **Status markers** (greppable in the logs): `mise: ok|failed|untrusted` and
+  `provision: summary mise=...`.
 - **Report**: full output and a one-line status are written to
   `~/.provisioned/last-run.log` and `~/.provisioned/status`.
-- **Strict mode**: set `EXTRA_TOOLS_STRICT=1` to make `extra-tools.sh` exit
-  non-zero when any tool fails (default is non-fatal).
 
 ## Prompt, window title, and terminal colors
 
@@ -298,8 +304,6 @@ shell, **command** = when that command runs. Values set under `environment:` in
 | Variable | Default | When | Effect |
 |---|---|---|---|
 | `CAPSULE_TRUST_MISE` | unset | start | `1` trusts `~/mise.toml` before provisioning. Any other value leaves trust to a manual `mise trust`. |
-| `EXTRA_TOOLS_STRICT` | `0` | start, command | `1` makes `extra-tools.sh` exit non-zero when a tool fails. `provision.sh` reports failed tools either way. |
-| `EXTRA_TOOLS` | unset | start, command | Space-separated `tool[@version]` list. Set it in `mise.toml` under `[env]`, not in `compose.yaml`: `provision.sh` reads it from the file and ignores the container value. See [`TOOLS.md`](TOOLS.md). |
 
 mise's own `MISE_*` variables pass through to mise unchanged.
 
@@ -344,7 +348,7 @@ Not meant to be overridden.
 | `BROWSER` | `true` | Login flows (`gh auth login`, `aws sso login`) do not fail trying to open a browser; open the printed URL on the host. |
 | `LANG`, `LC_ALL` | `en_US.UTF-8` | UTF-8 locale. |
 | `TERM` | `xterm` upgraded to `xterm-256color` | See [Host terminal requirements](#host-terminal-requirements). |
-| `PATH` | mise shims, `~/.local/bin`, `/usr/local/bin` first | Tools installed by mise and `extra-tools.sh` resolve first. |
+| `PATH` | mise shims, `~/.local/bin`, `/usr/local/bin` first | Tools installed by mise and self-updating agents (home copies in `~/.local/bin`) resolve first. |
 | `DEV_USER`, `DEV_UID`, `DEV_GID`, `DEV_HOME` | `dev`, `1000`, `1000`, `/home/dev` | Build-time user layout; changing them at runtime has no effect. |
 | `DEBIAN_FRONTEND` | `noninteractive` | Non-interactive apt during the build. |
 | `CLOUDSDK_PYTHON` | `/usr/bin/python3` | Only when `gcloud` is in `CLOUD_CLIS`: pins gcloud to the system Python. Set in `/etc/profile.d` and `zshrc.d`. |

@@ -54,7 +54,7 @@ latest_github_release() {
 #   <tool>_apply     -> edits the pin in place (version/checksum only)
 #   <tool>_refs      -> prints an issue/notes reference line for the PR body
 
-TOOLS="mise"
+TOOLS="mise claude-code"
 
 mise_current() {
   sed -n 's/^ARG MISE_VERSION=\(.*\)$/\1/p' "$dockerfile" | head -n1
@@ -67,6 +67,29 @@ mise_apply() {
 }
 mise_refs() {
   printf 'Review the [mise release notes](https://github.com/jdx/mise/releases/tag/%s) before merging.\n\nRefs #18.' "$1"
+}
+
+claude_code_file="${repo_root}/vendor/tools/claude-code.sh"
+claude-code_current() {
+  sed -n 's/^CLAUDE_CODE_VERSION="\(.*\)"$/\1/p' "$claude_code_file" | head -n1
+}
+claude-code_latest() {
+  curl -fsSL "https://downloads.claude.ai/claude-code-releases/stable" | tr -d '[:space:]'
+}
+claude-code_apply() {
+  version="$1"
+  manifest="$(curl -fsSL "https://downloads.claude.ai/claude-code-releases/${version}/manifest.json")"
+  amd64="$(printf '%s' "$manifest" | python3 -c 'import json,sys; print(json.load(sys.stdin)["platforms"]["linux-x64"]["checksum"])')"
+  arm64="$(printf '%s' "$manifest" | python3 -c 'import json,sys; print(json.load(sys.stdin)["platforms"]["linux-arm64"]["checksum"])')"
+  [ -n "$amd64" ] && [ -n "$arm64" ] || die "could not read claude-code checksums for ${version}"
+  sed -i \
+    -e "s/^CLAUDE_CODE_VERSION=.*/CLAUDE_CODE_VERSION=\"${version}\"/" \
+    -e "s/^CLAUDE_CODE_SHA256_AMD64=.*/CLAUDE_CODE_SHA256_AMD64=\"${amd64}\"/" \
+    -e "s/^CLAUDE_CODE_SHA256_ARM64=.*/CLAUDE_CODE_SHA256_ARM64=\"${arm64}\"/" \
+    "$claude_code_file"
+}
+claude-code_refs() {
+  printf 'Checksums are refreshed from the release manifest; the channel and verification method are unchanged.'
 }
 
 # --------------------------------------------------------------------------
