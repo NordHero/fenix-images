@@ -215,6 +215,26 @@ reported instead of hidden. Re-run it any time with `provision.sh`.
 - **Report**: full output and a one-line status are written to
   `~/.provisioned/last-run.log` and `~/.provisioned/status`.
 
+## OS updates
+
+OS packages are upgraded only when the image is built; a capsule cannot
+`apt upgrade` at runtime (non-root, `cap_drop: ALL`, `no-new-privileges`) and an
+in-container upgrade would be lost on recreate. `capsule-updates` surfaces when
+an image is behind:
+
+- A start hook (`start.d/20-updates.sh`) refreshes a cached summary in the
+  background; the login banner and `capsule-info` show it (`CAPSULE_UPDATE_NOTICE=0`
+  hides it). Run `capsule-updates` any time for the full list.
+- It counts pending apt updates with a **non-root** `apt-get` simulation using
+  its own lists/cache under `~/.cache/capsule/apt`, split into security
+  (`-security`) and other, and reports the image age from `BUILD_DATE`. This
+  covers everything apt-managed: Ubuntu packages, `gh`, and (in the `cloud-ops`
+  layer) `google-cloud-cli` and `azure-cli` including az's bundled Python.
+- The fix is always a rebuild (`./build-images.sh` or `docker compose build
+  --pull`), never a runtime upgrade. A network failure during the check is
+  non-fatal and reported. Set `CAPSULE_UPDATE_MAX_AGE_DAYS` to flag an image
+  older than N days.
+
 ## Prompt, window title, and terminal colors
 
 The zsh prompt uses the Powerlevel10k rainbow style. Terminal window and tab
@@ -314,6 +334,8 @@ shell, **command** = when that command runs. Values set under `environment:` in
 | `CAPSULE_NAME` | container hostname | shell | Label in the window title (`[capsule:<name>] <dir>`) and the login banner. |
 | `CAPSULE_WELCOME` | unset | shell | One-line login banner. Ignored when `~/.capsule-welcome` exists. Control characters except tab and newline are stripped. |
 | `CAPSULE_KEYRING_PROMPT` | `1` | shell | `0` skips running `capsule-unlock` at shell start. |
+| `CAPSULE_UPDATE_NOTICE` | `1` | shell | `0` hides the `capsule-updates` one-line summary from the login banner. |
+| `CAPSULE_UPDATE_MAX_AGE_DAYS` | unset | shell, command | When set, `capsule-updates` flags the image as older than this many days. |
 | `CAPSULE_TERM_COLORS` | value of `CAPSULE_ITERM_PROFILE_SWITCH` | shell | `0` disables the portable Dracula color switch (OSC 4/10/11/...). |
 | `CAPSULE_ITERM_PROFILE_SWITCH` | `1` | shell | `0` disables the iTerm2 profile switch; also disables the color switch unless `CAPSULE_TERM_COLORS` is set. |
 | `ITERM_DEVCONTAINER_PROFILE` | `fenix-devcontainer` | shell | iTerm2 profile selected on shell start. |

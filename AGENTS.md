@@ -46,12 +46,15 @@ their capsules. No image is published.
   `claude-code`, `copilot`, `kiro-cli`, `gemini`. `vendor/gemini/` holds the
   committed npm lockfile the `gemini` agent installs with `npm ci`.
 - `base/start.d/`, `base/zshrc.d/` — hook/snippet dirs run by the entrypoint and
-  sourced by zshrc; `10-mise.*` live in the `mise` target.
+  sourced by zshrc; `10-mise.*` live in the `mise` target, `20-updates.sh`
+  (the `capsule-updates` refresh hook) in `base`.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
   `gh` wrapper, `capsule-unlock`,
-  xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
+  xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`, `capsule-updates`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/
   `BUILD_DATE` build-args) is written to `/etc/capsule/info.json`, the
-  `CAPSULE_INFO` env, and OCI image labels. `capsule-git` validates
+  `CAPSULE_INFO` env, and OCI image labels. `capsule-updates` reports pending
+  apt security updates and image age (notify-and-rebuild; no runtime upgrades).
+  `capsule-git` validates
   `~/.capsule-git.yaml` (git identity + repos) and applies the identity on
   start; `capsule-sync` clones its repos idempotently via the gh credential
   helper.

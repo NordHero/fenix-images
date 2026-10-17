@@ -92,6 +92,12 @@ if [[ -o interactive ]]; then
   print -P "%F{cyan}capsule%f: %F{green}${CAPSULE_LABEL}%f"
   [[ -n "${CAPSULE_INFO:-}" ]] && print -P "%F{8}${CAPSULE_INFO}%f"
 
+  if [[ "${CAPSULE_UPDATE_NOTICE:-1}" != "0" ]] && command -v capsule-updates >/dev/null 2>&1; then
+    _capsule_updates="$(capsule-updates --summary 2>/dev/null)"
+    [[ -n "$_capsule_updates" ]] && print -P "%F{8}${_capsule_updates}%f"
+    unset _capsule_updates
+  fi
+
   if [[ -f "$HOME/.capsule-welcome" ]]; then
     tr -d '\000-\010\013-\037\177' <"$HOME/.capsule-welcome"
   elif [[ -n "${CAPSULE_WELCOME:-}" ]]; then
