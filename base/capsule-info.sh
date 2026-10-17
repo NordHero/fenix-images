@@ -9,6 +9,11 @@ if [ -f /etc/capsule/info.json ]; then
   cat /etc/capsule/info.json
 fi
 
+if [ -x /usr/local/bin/capsule-updates ]; then
+  summary="$(/usr/local/bin/capsule-updates --summary 2>/dev/null || true)"
+  [ -n "$summary" ] && printf '\n%s\n' "$summary"
+fi
+
 if [ -x /usr/local/bin/capsule-tools ]; then
   commands="$(/usr/local/bin/capsule-tools commands 2>/dev/null || true)"
   if [ -n "$commands" ]; then

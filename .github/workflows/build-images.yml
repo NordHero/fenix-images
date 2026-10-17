@@ -153,9 +153,23 @@ jobs:
             test -x /usr/local/bin/capsule-git
             test -x /usr/local/bin/capsule-info
             test -x /usr/local/bin/capsule-unlock
+            test -x /usr/local/bin/capsule-updates
+            test -x /etc/capsule/start.d/20-updates.sh
             test -d /etc/capsule/start.d
             test -d /etc/capsule/zshrc.d
             test -s /etc/capsule/info.json
+          '
+
+      - name: Verify capsule-updates runs (non-root apt simulation)
+        run: |
+          docker run --rm --entrypoint bash fenix-base:base -lc '
+            set -ex
+            capsule-updates --refresh
+            s="$(capsule-updates --summary)"
+            printf "%s\n" "$s"
+            printf "%s\n" "$s" | grep -q "^updates:"
+            # A freshly built image is up to date.
+            printf "%s\n" "$s" | grep -q "up to date"
           '
 
       - name: Verify base image contents + non-root

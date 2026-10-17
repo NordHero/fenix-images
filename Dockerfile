@@ -80,11 +80,14 @@ COPY --chmod=0755 base/capsule-info.sh /usr/local/bin/capsule-info
 COPY --chmod=0755 base/capsule-sync.sh /usr/local/bin/capsule-sync
 COPY --chmod=0755 base/capsule-git.sh /usr/local/bin/capsule-git
 COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
+COPY --chmod=0755 base/capsule-updates.sh /usr/local/bin/capsule-updates
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
 
 RUN mkdir -p /etc/capsule/start.d /etc/capsule/zshrc.d \
     && printf '{\n  "image_version": "%s",\n  "source_commit": "%s",\n  "build_date": "%s",\n  "base_os": "ubuntu:24.04"\n}\n' \
       "${IMAGE_VERSION}" "${SOURCE_COMMIT}" "${BUILD_DATE}" > /etc/capsule/info.json
+
+COPY --chmod=0755 base/start.d/20-updates.sh /etc/capsule/start.d/20-updates.sh
 
 LABEL org.opencontainers.image.title="fenix-base" \
       org.opencontainers.image.version="${IMAGE_VERSION}" \
