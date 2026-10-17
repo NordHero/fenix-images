@@ -835,6 +835,63 @@ jobs:
           sarif_file: trivy-agents-gemini.sarif
           category: trivy-agents-gemini
 
+  mise-denylist:
+    needs: [changes, validate-config]
+    if: needs.changes.outputs.vendor == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build mise target with the aws cloud CLI
+        run: |
+          set -ex
+          docker build \
+            --build-arg "CLOUD_CLIS=aws" \
+            --build-arg "CODING_AGENTS=" \
+            --target mise -t fenix-base:denylist .
+
+      - name: Assert mise shims come after system paths
+        run: |
+          docker run --rm --entrypoint bash fenix-base:denylist -lc '
+            set -ex
+            # The verified /usr/local/bin must precede the mise shims on PATH.
+            ulb="$(echo "$PATH" | tr ":" "\n" | grep -n "^/usr/local/bin$" | head -n1 | cut -d: -f1)"
+            shim="$(echo "$PATH" | tr ":" "\n" | grep -n "mise/shims$" | head -n1 | cut -d: -f1)"
+            test -n "$ulb" && test -n "$shim" && test "$ulb" -lt "$shim"
+          '
+
+      - name: Assert a registered tool in mise.toml is denied and the vendor copy wins
+        run: |
+          set -ex
+          printf '%s\n' '[tools]' 'aws-cli = "latest"' 'uv = "0.13.0"' > /tmp/deny.toml
+          docker run -d --name fdeny \
+            -e CAPSULE_TRUST_MISE=1 \
+            -v /tmp/deny.toml:/home/dev/mise.toml:ro \
+            fenix-base:denylist
+          for i in $(seq 1 40); do
+            docker exec fdeny bash -lc 'grep -q "provision: summary" "$HOME/.provisioned/last-run.log"' 2>/dev/null && break
+            sleep 3
+          done
+          docker exec fdeny bash -lc '
+            set -ex
+            grep -q "mise: denied aws-cli" "$HOME/.provisioned/last-run.log"
+            grep -q "denied=1" "$HOME/.provisioned/status"
+            test "$(readlink -f "$(command -v aws)")" = "/usr/local/lib/aws-cli/bin/aws"
+            # A non-registered tool is still installed.
+            eval "$(mise activate bash)"
+            uv --version
+          '
+          docker rm -f fdeny
+
+      - name: Assert capsule-info reports the registered tool
+        run: |
+          docker run --rm --entrypoint capsule-info fenix-base:denylist | tee /tmp/info.txt
+          grep -q 'Registered tools:' /tmp/info.txt
+          grep -qE '^aws .*image-seed' /tmp/info.txt
+
   size-report:
     needs: [changes, validate-config]
     if: needs.changes.outputs.vendor == 'true'
@@ -865,7 +922,7 @@ jobs:
 
   ci-ok:
     if: always()
-    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, agents-matrix, agents-full, gemini-full, size-report, verify-example]
+    needs: [changes, validate-config, build, install-matrix, cloud-ops-full, agents-matrix, agents-full, gemini-full, mise-denylist, size-report, verify-example]
     runs-on: ubuntu-latest
     steps:
       - name: All required jobs passed or were skipped

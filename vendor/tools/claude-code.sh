@@ -6,6 +6,8 @@ export TOOL_ANCHOR="checksum-only"
 export TOOL_ANCHOR_STRENGTH="checksum-tls"
 export TOOL_SIZE="~285MB"
 export TOOL_UPDATE="self-update"
+export TOOL_MISE_ALIASES="claude-code npm:@anthropic-ai/claude-code"
+export TOOL_COMMANDS="claude"
 
 CLAUDE_CODE_VERSION="2.1.292"
 CLAUDE_CODE_SHA256_AMD64="a967e7b1d8b4e47ee421d5433027880347952b0c0857abf880e2c942a4ec93b3"

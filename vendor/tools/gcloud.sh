@@ -6,6 +6,8 @@ export TOOL_ANCHOR="apt(35BA..15A3)"
 export TOOL_ANCHOR_STRENGTH="vendor-apt"
 export TOOL_SIZE="~330MB"
 export TOOL_UPDATE="apt+rebuild"
+export TOOL_MISE_ALIASES="gcloud gcloud-cli google-cloud-cli gcloud-sdk gsutil bq"
+export TOOL_COMMANDS="gcloud gsutil bq"
 
 GCLOUD_APT_FINGERPRINT="35BAA0B33E9EB396F59CA838C0BA5CE6DC6315A3"
 GCLOUD_KEY_URL="https://packages.cloud.google.com/apt/doc/apt-key.gpg"

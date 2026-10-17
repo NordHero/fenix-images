@@ -48,10 +48,40 @@ cmd_list() {
   done
 }
 
+cmd_denylist() {
+  for file in "$TOOLS_DIR"/*.sh; do
+    [ -f "$file" ] || continue
+    (
+      TOOL_NAME="" TOOL_MISE_ALIASES=""
+      # shellcheck source=/dev/null
+      . "$file"
+      for a in $TOOL_NAME $TOOL_MISE_ALIASES; do
+        printf '%s\n' "$a"
+      done
+    )
+  done | sort -u
+}
+
+cmd_commands() {
+  for file in "$TOOLS_DIR"/*.sh; do
+    [ -f "$file" ] || continue
+    (
+      TOOL_NAME="" TOOL_COMMANDS=""
+      # shellcheck source=/dev/null
+      . "$file"
+      for c in ${TOOL_COMMANDS:-$TOOL_NAME}; do
+        printf '%s\n' "$c"
+      done
+    )
+  done | sort -u
+}
+
 cmd="${1:-}"
 shift || true
 case "$cmd" in
   install) cmd_install "$@" ;;
   list) cmd_list ;;
-  *) die "usage: capsule-tools {install <layer> \"<selection>\"|list}" ;;
+  denylist) cmd_denylist ;;
+  commands) cmd_commands ;;
+  *) die "usage: capsule-tools {install <layer> \"<selection>\"|list|denylist|commands}" ;;
 esac

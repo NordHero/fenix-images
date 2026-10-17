@@ -140,4 +140,4 @@ COPY --chmod=0755 base/start.d/10-mise.sh /etc/capsule/start.d/10-mise.sh
 COPY base/zshrc.d/10-mise.zsh /etc/capsule/zshrc.d/10-mise.zsh
 USER ${DEV_USER}
 
-ENV PATH="${DEV_HOME}/.local/share/mise/shims:${DEV_HOME}/.local/bin:/usr/local/bin:${PATH}"
+ENV PATH="${DEV_HOME}/.local/bin:/usr/local/bin:${PATH}:${DEV_HOME}/.local/share/mise/shims"

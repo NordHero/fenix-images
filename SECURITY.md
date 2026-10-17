@@ -92,6 +92,13 @@ dev-writable home copy wins on `PATH`. This trades tamper resistance for
 staying current; a self-updated agent is no longer described by our pins or the
 image scan.
 
+To keep these verified copies authoritative in the `mise` target, `provision.sh`
+refuses `[tools]` entries that match the `capsule-tools` registry (reported as
+`mise: denied <name>`), mise shims sit after the system paths on `PATH`, and
+`capsule-info` surfaces any leftover mise copy shadowing a verified tool. This
+is a best-effort guard rail, not a security boundary: a dev can still bypass it
+with `npm i -g`, `pip install`, or a manual download.
+
 ## Build inputs
 
 | Input | Pinning |

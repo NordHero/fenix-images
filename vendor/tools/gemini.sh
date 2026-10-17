@@ -6,6 +6,8 @@ export TOOL_ANCHOR="npm-integrity+node-gpg"
 export TOOL_ANCHOR_STRENGTH="integrity+gpg"
 export TOOL_SIZE="~430MB"
 export TOOL_UPDATE="self-update"
+export TOOL_MISE_ALIASES="gemini gemini-cli npm:@google/gemini-cli node nodejs"
+export TOOL_COMMANDS="gemini"
 
 NODE_VERSION="v24.22.0"
 NODE_SHA256_AMD64="cc2f601cee82d9a5a233302fe307abc600727035fd7d2c3a3571755989e95008"

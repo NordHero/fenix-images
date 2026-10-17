@@ -6,6 +6,8 @@ export TOOL_ANCHOR="checksum-only"
 export TOOL_ANCHOR_STRENGTH="checksum-pinned"
 export TOOL_SIZE="~186MB"
 export TOOL_UPDATE="self-update"
+export TOOL_MISE_ALIASES="copilot github-copilot-cli npm:@github/copilot"
+export TOOL_COMMANDS="copilot"
 
 COPILOT_VERSION="1.0.98"
 COPILOT_SHA256_AMD64="87ddb4b3f98462b7cb13c0a6857c68ee410ec9673e2e5f64ee5bedad45825b05"

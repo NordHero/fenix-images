@@ -63,7 +63,14 @@ each tool layer is a no-op when its selection is empty.
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
   owns pinned, per-capsule tool and Python versions on top of the base Python.
-  Building with no `--target` builds this stage.
+  Building with no `--target` builds this stage. To keep the verified cloud/agent
+  copies authoritative, `provision.sh` refuses any `[tools]` entry whose name or
+  backend alias matches the `capsule-tools` registry (reported as
+  `mise: denied <name>` in `~/.provisioned/`, non-fatal), the mise shims come
+  after the system paths on `PATH`, and `capsule-info` reports each registered
+  tool's path, owner, version and origin (image seed, self-update, or a leftover
+  mise copy). This is a best-effort guard rail, not a boundary: `npm i -g` or
+  `pip install` still bypass it.
 
 ## Host terminal requirements
 
@@ -201,8 +208,10 @@ Provisioning is **non-fatal**: a tool that fails to install no longer stops the
 container from starting — the environment always comes up, and the failure is
 reported instead of hidden. Re-run it any time with `provision.sh`.
 
-- **Status markers** (greppable in the logs): `mise: ok|failed|untrusted` and
-  `provision: summary mise=...`.
+- **Status markers** (greppable in the logs): `mise: ok|failed|untrusted`,
+  `mise: denied <name>` for a `[tools]` entry that duplicates a registered
+  cloud/agent tool, `mise: leftover <cmd>` for a stale mise copy shadowing a
+  verified one, and `provision: summary mise=... denied=...`.
 - **Report**: full output and a one-line status are written to
   `~/.provisioned/last-run.log` and `~/.provisioned/status`.
 
@@ -359,7 +368,7 @@ Not meant to be overridden.
 | `BROWSER` | `true` | Login flows (`gh auth login`, `aws sso login`) do not fail trying to open a browser; open the printed URL on the host. |
 | `LANG`, `LC_ALL` | `en_US.UTF-8` | UTF-8 locale. |
 | `TERM` | `xterm` upgraded to `xterm-256color` | See [Host terminal requirements](#host-terminal-requirements). |
-| `PATH` | mise shims, `~/.local/bin`, `/usr/local/bin` first | Tools installed by mise and self-updating agents (home copies in `~/.local/bin`) resolve first. |
+| `PATH` | `~/.local/bin`, `/usr/local/bin`, system, then mise shims last | Self-updating agent home copies (`~/.local/bin`) and verified vendor seeds (`/usr/local/bin`) resolve before mise shims, so a `[tools]` entry cannot shadow a registered cloud/agent tool. |
 | `DEV_USER`, `DEV_UID`, `DEV_GID`, `DEV_HOME` | `dev`, `1000`, `1000`, `/home/dev` | Build-time user layout; changing them at runtime has no effect. |
 | `DEBIAN_FRONTEND` | `noninteractive` | Non-interactive apt during the build. |
 | `CLOUDSDK_PYTHON` | `/usr/bin/python3` | Only when `gcloud` is in `CLOUD_CLIS`: pins gcloud to the system Python. Set in `/etc/profile.d` and `zshrc.d`. |
