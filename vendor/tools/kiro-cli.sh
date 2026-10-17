@@ -6,6 +6,8 @@ export TOOL_ANCHOR="checksum-only"
 export TOOL_ANCHOR_STRENGTH="checksum-pinned"
 export TOOL_SIZE="~155MB"
 export TOOL_UPDATE="self-update"
+export TOOL_MISE_ALIASES="kiro-cli"
+export TOOL_COMMANDS="kiro-cli q qchat kiro-cli-chat kiro-cli-term"
 
 KIRO_CLI_VERSION="2.32.0"
 KIRO_CLI_SHA256_AMD64="05989f9bfe465b304e8d1b2dba50aec2b84fcc1deaa4c0773af3f539d6e0d312"

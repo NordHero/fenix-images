@@ -6,6 +6,8 @@ export TOOL_ANCHOR="apt(BC52..29CF)"
 export TOOL_ANCHOR_STRENGTH="vendor-apt"
 export TOOL_SIZE="~620MB"
 export TOOL_UPDATE="apt+rebuild"
+export TOOL_MISE_ALIASES="azure-cli az"
+export TOOL_COMMANDS="az"
 
 AZ_APT_FINGERPRINT="BC528686B50D79E339D3721CEB3E94ADBE1229CF"
 AZ_KEY_URL="https://packages.microsoft.com/keys/microsoft.asc"

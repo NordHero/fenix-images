@@ -6,6 +6,8 @@ export TOOL_ANCHOR="pgp(FB5D..475C)"
 export TOOL_ANCHOR_STRENGTH="vendor-pgp"
 export TOOL_SIZE="~160MB"
 export TOOL_UPDATE="bump-pr+rebuild"
+export TOOL_MISE_ALIASES="aws-cli awscli aqua:aws/aws-cli"
+export TOOL_COMMANDS="aws"
 
 AWS_PGP_FINGERPRINT="FB5DB77FD5C118B80511ADA8A6310ACC4672475C"
 AWS_SOURCE_URL="https://awscli.amazonaws.com/awscli.tar.gz"

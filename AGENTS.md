@@ -88,7 +88,11 @@ mise and its tool backends are the trust point for `[tools]`: declared tools are
 resolved and verified by mise (pinned + checksum-verified mise, Sigstore/SLSA
 provenance, `mise lock` digests). A `mise.toml` with `[env]` is untrusted until
 trusted; provisioning skips the mounted `mise.toml` until it is trusted
-(`CAPSULE_TRUST_MISE=1` or a manual `mise trust`).
+(`CAPSULE_TRUST_MISE=1` or a manual `mise trust`). To stop a `[tools]` entry
+from shadowing a verified cloud/agent tool, `provision.sh` refuses entries
+matching the `capsule-tools` registry (`mise: denied <name>`), mise shims sit
+after the system paths on `PATH`, and `capsule-info` reports each registered
+tool's origin. This is best-effort: `npm i -g` / `pip install` still bypass it.
 
 Coding agents (`agents` layer) are installed at build time by `capsule-tools`
 against a pinned anchor (claude-code, copilot and kiro-cli are checksum-only;
