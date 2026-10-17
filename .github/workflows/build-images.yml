@@ -638,7 +638,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        agent: [claude-code]
+        agent: [claude-code, copilot]
         platform: [linux/amd64, linux/arm64]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -668,6 +668,10 @@ jobs:
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'claude --version'
               docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
               ;;
+            copilot)
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'copilot --version'
+              docker run --rm --platform "$plat" --entrypoint bash "$img" -lc '! command -v node'
+              ;;
           esac
 
       - name: Clean up
@@ -687,7 +691,7 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Build agents with claude-code
+      - name: Build agents with claude-code and copilot
         run: |
           set -ex
           docker build \
@@ -695,7 +699,7 @@ jobs:
             --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
             --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --build-arg "CLOUD_CLIS=" \
-            --build-arg "CODING_AGENTS=claude-code" \
+            --build-arg "CODING_AGENTS=claude-code copilot" \
             --target agents -t fenix-base:agents-cc .
 
       - name: Assert agents resolve, no node, seed + home-copy model
@@ -705,13 +709,17 @@ jobs:
             claude --version
             test -x /opt/capsule/agents/claude-code/claude
             test "$(readlink -f "$(command -v claude)")" = "/opt/capsule/agents/claude-code/claude"
+            copilot --version
+            test -x /opt/capsule/agents/copilot/copilot
+            test "$(readlink -f "$(command -v copilot)")" = "/opt/capsule/agents/copilot/copilot"
             ! command -v node
           '
 
-      - name: Assert capsule-tools lists the agent
+      - name: Assert capsule-tools lists the agents
         run: |
           docker run --rm --entrypoint capsule-tools fenix-base:agents-cc list | tee /tmp/agents.txt
           grep -q '^claude-code ' /tmp/agents.txt
+          grep -q '^copilot ' /tmp/agents.txt
 
       - name: Tamper test (wrong checksum must fail the build)
         run: |

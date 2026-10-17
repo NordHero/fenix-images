@@ -49,6 +49,9 @@ each tool layer is a no-op when its selection is empty.
   - `claude-code` — native release from `downloads.claude.ai`, the binary
     verified against the per-platform SHA-256 in the TLS-served `manifest.json`
     (checksum-only; see [`SECURITY.md`](../SECURITY.md)).
+  - `copilot` — standalone binary from the `github/copilot-cli` releases,
+    verified against the SHA-256 pinned here from the release `SHA256SUMS.txt`
+    (checksum-only); embeds its own runtime, no Node.
 - **mise** — pinned, checksum-verified **mise** plus its provisioning hook
   (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
   owns pinned, per-capsule tool and Python versions on top of the base Python.
