@@ -15,15 +15,17 @@ fi
 [ -f "$HOME/.keyring-env" ] && source "$HOME/.keyring-env"
 
 export PATH="/usr/local/bin:$HOME/.local/bin:$PATH"
-command -v mise >/dev/null 2>&1 && eval "$(mise activate zsh)"
+
+if [[ -d /etc/capsule/zshrc.d ]]; then
+  for _snippet in /etc/capsule/zshrc.d/*.zsh(N); do
+    source "$_snippet"
+  done
+  unset _snippet
+fi
 
 if [[ $- == *i* ]] && command -v gh >/dev/null 2>&1; then
   gh auth status >/dev/null 2>&1 || \
     echo "GitHub not authenticated. Run: gh auth login"
-fi
-
-if [[ $- == *i* ]] && grep -qs 'mise=untrusted' "$HOME/.provisioned/status"; then
-  echo "mise.toml not trusted; tools not installed. Review ~/mise.toml, then run: mise trust ~/mise.toml && provision.sh"
 fi
 
 if [[ $- == *i* ]] && [[ -n "${CAPSULE_REPOS:-}${CAPSULE_REPOS_FILE:-}${GIT_USER_NAME:-}${GIT_USER_EMAIL:-}" ]]; then

@@ -61,9 +61,16 @@ if [ -n "${AWS_SSO_START_URL:-}" ] && [ -n "${AWS_SSO_REGION:-}" ] && [ ! -f "$H
   } >"$HOME/.aws/config" 2>/dev/null || true
 fi
 
-if [ -f "$HOME/mise.toml" ] && [ -x /usr/local/bin/provision.sh ]; then
-  /usr/local/bin/provision.sh || echo "provision: incomplete; run 'provision.sh' to retry (see ~/.provisioned/last-run.log)" >&2
+STATUS_DIR="$HOME/.capsule"
+mkdir -p "$STATUS_DIR" || true
+start_rc=0
+if [ -d /etc/capsule/start.d ]; then
+  for hook in /etc/capsule/start.d/*; do
+    [ -x "$hook" ] || continue
+    "$hook" || start_rc=1
+  done
 fi
+printf 'rc=%s\n' "$start_rc" >"$STATUS_DIR/status" 2>/dev/null || true
 
 if [ -x /usr/local/bin/capsule-sync ] && { [ -f "${CAPSULE_GIT_FILE:-$HOME/.capsule-git.yaml}" ] || [ -f "$HOME/.capsule-repos" ]; }; then
   /usr/local/bin/capsule-sync || echo "capsule-sync: some repos pending — run 'capsule-sync' after 'gh auth login'" >&2

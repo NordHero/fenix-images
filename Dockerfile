@@ -94,6 +94,9 @@ COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
+COPY --chmod=0755 base/start.d/10-mise.sh /etc/capsule/start.d/10-mise.sh
+COPY base/zshrc.d/10-mise.zsh /etc/capsule/zshrc.d/10-mise.zsh
+
 RUN mkdir -p /etc/capsule \
     && printf '{\n  "image_version": "%s",\n  "source_commit": "%s",\n  "build_date": "%s",\n  "base_os": "ubuntu:24.04"\n}\n' \
       "${IMAGE_VERSION}" "${SOURCE_COMMIT}" "${BUILD_DATE}" > /etc/capsule/info.json
@@ -115,6 +118,6 @@ ENV PATH="${DEV_HOME}/.local/share/mise/shims:${DEV_HOME}/.local/bin:/usr/local/
 RUN mkdir -p ${DEV_HOME}/workspace
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
-  CMD sh -c 'f="$HOME/.provisioned/status"; [ ! -f "$f" ] || grep -q "rc=0" "$f"'
+  CMD sh -c 'f="$HOME/.capsule/status"; [ ! -f "$f" ] || grep -q "rc=0" "$f"'
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
