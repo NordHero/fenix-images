@@ -32,7 +32,7 @@ pre-commit run --all-files         # one-off full sweep
 - `validate-config`: example `mise.toml` parses and has no `"latest"`.
 - `build`: builds the image; asserts contents, the entrypoint, the keyring
   password flows, `capsule-sync`, AWS seeding, provisioning of one `[tools]`
-  and one `EXTRA_TOOLS` package; Trivy scan (HIGH/CRITICAL).
+  package; Trivy scan (HIGH/CRITICAL).
 - `install-matrix`: on changes under `vendor/` or to the Dockerfile, installs
   every `capsule-tools` entry on amd64 and arm64 (one cell per tool/arch, so a
   broken pin fails only that entry) and runs the one-Python-on-`PATH` check.

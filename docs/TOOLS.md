@@ -36,9 +36,8 @@ For tools not in the registry, name the backend explicitly:
 - `pypi:` installs Python packages.
 - `aqua:` installs from the aqua registry.
 
-Many CLIs are available through a backend, so they belong in `[tools]`, not in
-`EXTRA_TOOLS`. Tools can also be declared in table form when you need to pass
-extra options:
+Many CLIs are available through a backend, so they belong in `[tools]`. Tools
+can also be declared in table form when you need to pass extra options:
 
 ```toml
 [tools]
@@ -49,22 +48,14 @@ Tools declared via a backend are resolved, verified, and lockable by mise just
 like registry tools. See the [mise backends](https://mise.jdx.dev/dev-tools/backends/)
 docs for the full list.
 
-## `[env]` and `EXTRA_TOOLS` — vendor installers
+## Cloud CLIs and coding agents — image layers
 
-A few tools have no mise backend and must be installed by the vendor's own
-script. These go in `EXTRA_TOOLS`:
-
-```toml
-[env]
-EXTRA_TOOLS = "kiro-cli"
-```
-
-`extra-tools.sh` installs these. `kiro-cli` installs the vendor's latest (its
-installer handles platform/glibc detection and checksum verification itself).
-
-`EXTRA_TOOLS` are a lower trust tier than `[tools]` — they are vendor scripts,
-not verified by mise or this repo. Prefer a `[tools]` backend whenever one
-exists. See [`SECURITY.md`](../SECURITY.md).
+Credential-bearing tools (the cloud CLIs `aws`, `gcloud`, `az` and the coding
+agents `claude-code`, `copilot`, `kiro-cli`, `gemini`) are **not** declared in
+`mise.toml`. They are built into the image from each vendor's channel against a
+pinned trust anchor, selected per capsule with the `CLOUD_CLIS` and
+`CODING_AGENTS` build args (see [`DESIGN.md`](DESIGN.md#image-targets) and
+[`SECURITY.md`](../SECURITY.md)).
 
 ## Reproducibility
 
