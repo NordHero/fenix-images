@@ -5,21 +5,33 @@ see [`README.md`](../README.md); for declaring tools see [`TOOLS.md`](TOOLS.md).
 All supported variables are listed under
 [Environment variables](#environment-variables).
 
-## Base image
+## Image targets
 
-`ubuntu:24.04`, non-root `dev` user (UID/GID 1000). It carries zsh +
-Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
-network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
-shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
-processes, forwards signals), **mise** and **yq** (pinned, checksum-verified), and
-`bubblewrap` + `socat` (the Linux backends for agent command sandboxes —
-bubblewrap + seccomp is the shared mechanism used by Kiro, GitHub Copilot CLI
-and Claude Code; installed but not enabled, and the base image ships no sandbox
-policy). The only language runtime baked in is the distro Python (`python3`
-plus a `python` symlink via `python-is-python3`): a system interpreter many
-tool installers and `pypi:` locking assume on `PATH`. mise still owns pinned,
-per-capsule Python versions; the baked one is the always-present baseline. No
-other language runtimes or cloud tools are baked in.
+The `Dockerfile` is multi-stage with four targets, each built on the previous:
+`base` → `cloud-ops` → `agents` → `mise`. A capsule selects a target and its
+tools in `compose.yaml` (`build.target` + `CLOUD_CLIS` / `CODING_AGENTS` args);
+each tool layer is a no-op when its selection is empty.
+
+- **base** — `ubuntu:24.04`, non-root `dev` user (UID/GID 1000). It carries zsh
+  + Oh-My-Zsh + Powerlevel10k (baked into the image, so first boot needs no
+  network), `gh`, a gnome-keyring Secret Service vault, a headless `xclip`
+  shim, editors + pager (`vim`, `nano`, `less`), `tini` as PID 1 (reaps orphaned
+  processes, forwards signals), **yq** (pinned, checksum-verified), and
+  `bubblewrap` + `socat` (the Linux backends for agent command sandboxes —
+  bubblewrap + seccomp is the shared mechanism used by Kiro, GitHub Copilot CLI
+  and Claude Code; installed but not enabled, and the base image ships no
+  sandbox policy). The only language runtime baked in is the distro Python
+  (`python3` plus a `python` symlink via `python-is-python3`): a system
+  interpreter many tool installers and `pypi:` locking assume on `PATH`. No
+  mise, no other language runtimes or cloud tools. The entrypoint runs
+  executable hooks in `/etc/capsule/start.d/` and zsh sources
+  `/etc/capsule/zshrc.d/*.zsh`.
+- **cloud-ops** — selected cloud CLIs (`CLOUD_CLIS`).
+- **agents** — selected coding agents (`CODING_AGENTS`).
+- **mise** — pinned, checksum-verified **mise** plus its provisioning hook
+  (`start.d/10-mise.sh`) and activation snippet (`zshrc.d/10-mise.zsh`). mise
+  owns pinned, per-capsule tool and Python versions on top of the base Python.
+  Building with no `--target` builds this stage.
 
 ## Host terminal requirements
 
@@ -345,10 +357,11 @@ Pins in the `Dockerfile` are build args with defaults kept in the `Dockerfile`:
 
 ## Version pinning
 
-- **Base image** pins the `ubuntu:24.04` digest, mise (version + checksum), yq
+- **Image** pins the `ubuntu:24.04` digest, yq
   (version + per-architecture SHA-256),
   oh-my-zsh and powerlevel10k (commit SHAs), and the `gh` apt key
-  fingerprints. Ubuntu packages and `gh` come from signed apt repos at build
+  fingerprints; the `mise` target pins mise (version + checksum). Ubuntu
+  packages and `gh` come from signed apt repos at build
   time. Rebuild with `./build-images.sh` to pick up changes.
 - **`mise.toml`** pins each tool version; `mise.lock` and `.mise/locks/`
   (mounted beside it)

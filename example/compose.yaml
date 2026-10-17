@@ -1,5 +1,11 @@
 services:
   dev:
+    build:
+      context: ..
+      target: mise
+      args:
+        CLOUD_CLIS: ""
+        CODING_AGENTS: ""
     image: fenix-base:local
     container_name: example
     cap_drop:

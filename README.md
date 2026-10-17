@@ -23,8 +23,8 @@ with two declarative files, `compose.yaml` (image + volume) and `mise.toml`
 ```
 This repo (clone + build once)         A capsule (a folder you own)
 ┌─────────────────────────────┐        ┌───────────────────────────────┐
-│ Dockerfile: base + mise     │        │ compose.yaml                  │
-│ extra-tools.sh (shim)       │◀───────│   image: fenix-base:local     │
+│ Dockerfile: base → cloud-ops│        │ compose.yaml                  │
+│   → agents → mise (targets) │◀───────│   build: { target: mise }     │
 │ build-images.sh builds it   │  use   │   mounts ./mise.toml          │
 │ -> fenix-base:local         │        │ mise.toml  (tools + versions) │
 └─────────────────────────────┘        └───────────────────────────────┘

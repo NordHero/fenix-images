@@ -100,13 +100,57 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
-      - name: Build base image
+      - name: Build every target (empty selections)
         run: |
-          docker build \
-            --build-arg "IMAGE_VERSION=ci" \
-            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)" \
-            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            -t fenix-base:ci .
+          set -ex
+          common=(
+            --build-arg "IMAGE_VERSION=ci"
+            --build-arg "SOURCE_COMMIT=$(git rev-parse --short HEAD)"
+            --build-arg "BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            --build-arg "CLOUD_CLIS="
+            --build-arg "CODING_AGENTS="
+          )
+          docker build "${common[@]}" --target base -t fenix-base:base .
+          docker build "${common[@]}" --target cloud-ops -t fenix-base:cloud-ops .
+          docker build "${common[@]}" --target agents -t fenix-base:agents .
+          docker build "${common[@]}" --target mise -t fenix-base:ci .
+
+      - name: Assert mise is only in the mise target
+        run: |
+          set -ex
+          for t in base cloud-ops agents; do
+            docker run --rm --entrypoint bash "fenix-base:$t" -lc '! command -v mise' \
+              || { echo "mise must not be present in target $t" >&2; exit 1; }
+            docker run --rm --entrypoint bash "fenix-base:$t" -lc 'test ! -e /etc/capsule/start.d/10-mise.sh'
+            docker run --rm --entrypoint bash "fenix-base:$t" -lc 'test ! -e /etc/capsule/zshrc.d/10-mise.zsh'
+          done
+          docker run --rm --entrypoint bash fenix-base:ci -lc 'command -v mise'
+          docker run --rm --entrypoint bash fenix-base:ci -lc 'test -x /etc/capsule/start.d/10-mise.sh'
+          docker run --rm --entrypoint bash fenix-base:ci -lc 'test -e /etc/capsule/zshrc.d/10-mise.zsh'
+
+      - name: Verify base target contents (no mise) + non-root
+        run: |
+          docker run --rm --entrypoint bash fenix-base:base -lc '
+            set -ex
+            test "$(id -u)" -eq 1000
+            curl --version
+            git --version
+            gh --version
+            zsh --version
+            python3 --version
+            python --version
+            yq --version
+            bwrap --version
+            socat -V >/dev/null
+            test -x /usr/local/bin/extra-tools.sh
+            test -x /usr/local/bin/capsule-sync
+            test -x /usr/local/bin/capsule-git
+            test -x /usr/local/bin/capsule-info
+            test -x /usr/local/bin/capsule-unlock
+            test -d /etc/capsule/start.d
+            test -d /etc/capsule/zshrc.d
+            test -s /etc/capsule/info.json
+          '
 
       - name: Verify base image contents + non-root
         run: |
@@ -395,7 +439,7 @@ jobs:
       - name: Trivy scan (base)
         uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
-          image-ref: fenix-base:ci
+          image-ref: fenix-base:base
           format: sarif
           output: trivy-base.sarif
           severity: HIGH,CRITICAL
@@ -409,6 +453,60 @@ jobs:
         with:
           sarif_file: trivy-base.sarif
           category: trivy-base
+
+      - name: Trivy scan (cloud-ops)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:cloud-ops
+          format: sarif
+          output: trivy-cloud-ops.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF (cloud-ops)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-cloud-ops.sarif
+          category: trivy-cloud-ops
+
+      - name: Trivy scan (agents)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:agents
+          format: sarif
+          output: trivy-agents.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF (agents)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-agents.sarif
+          category: trivy-agents
+
+      - name: Trivy scan (mise)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: fenix-base:ci
+          format: sarif
+          output: trivy-mise.sarif
+          severity: HIGH,CRITICAL
+          limit-severities-for-sarif: true
+          ignore-unfixed: true
+
+      - name: Upload Trivy SARIF (mise)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        continue-on-error: true
+        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4.38.3
+        with:
+          sarif_file: trivy-mise.sarif
+          category: trivy-mise
 
   verify-example:
     needs: changes

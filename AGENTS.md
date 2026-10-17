@@ -17,22 +17,29 @@ doc; everything else is written for humans.
 
 ## Project
 
-**fenix-images** builds a single, minimal non-root development base image with
-[mise](https://mise.jdx.dev) baked in, and ships a sample capsule. It is
-self-contained: usable with nothing but `docker compose`.
+**fenix-images** builds a single, minimal non-root development base image and
+layers optional cloud CLIs, coding agents and [mise](https://mise.jdx.dev) on
+top via multi-stage targets, and ships a sample capsule. It is self-contained:
+usable with nothing but `docker compose`.
 
-Tools are **not** baked per image; they are declared in a `mise.toml` and
-installed into the home volume on first boot. A **capsule** is a folder with
-`compose.yaml` + `mise.toml` defining one encapsulated runtime; **capsules** is
-the plural.
+Tools are **not** baked per image; less critical tools are declared in a
+`mise.toml` and installed into the home volume on first boot (when the `mise`
+target is used). A **capsule** is a folder with `compose.yaml` + `mise.toml`
+defining one encapsulated runtime; **capsules** is the plural.
 
 The documented flow is self-contained and build-it-yourself: users clone this
-repo, build the base image locally (`./build-images.sh` -> `fenix-base:local`),
-and reference that local image from their capsules. No image is published.
+repo, build the image locally (`./build-images.sh` -> `fenix-base:local`,
+default target `mise`), and reference that local image or `build:` it from
+their capsules. No image is published.
 
 ## Where things live
 
-- `Dockerfile` — the base image (OS + eye-candy + mise). Root context.
+- `Dockerfile` — multi-stage image, targets `base` → `cloud-ops` → `agents` →
+  `mise` (base is OS + eye-candy; mise is the last layer). Root context.
+- `base/cloud-ops.sh`, `base/agents.sh` — per-target dispatchers; no-op when
+  their selection (`CLOUD_CLIS` / `CODING_AGENTS`) is empty.
+- `base/start.d/`, `base/zshrc.d/` — hook/snippet dirs run by the entrypoint and
+  sourced by zshrc; `10-mise.*` live in the `mise` target.
 - `base/` — files copied into the image (entrypoint, provision, zshrc, p10k,
   `gh` wrapper, `capsule-unlock`,
   xclip shim, `capsule-info`, `capsule-sync`, `capsule-git`). Provenance (`IMAGE_VERSION`/`SOURCE_COMMIT`/

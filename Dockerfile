@@ -1,4 +1,4 @@
-FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55
+FROM ubuntu:24.04@sha256:534baea6a22c03a63003dbc8dbe78fe34bc0d7e595d9a9dc9834884ff530eb55 AS base
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV BROWSER=true
@@ -7,7 +7,6 @@ ENV DEV_UID=1000
 ENV DEV_GID=1000
 ENV DEV_HOME=/home/dev
 
-ARG MISE_VERSION=v2026.10.10
 ARG OHMYZSH_COMMIT=964ddf789b022b6958b27d02d7fa54f552de21e9
 ARG POWERLEVEL10K_COMMIT=d05a1b00f9a61f9578bf9dc19b8451942dde8734
 ARG YQ_VERSION=v4.54.1
@@ -53,16 +52,6 @@ RUN curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg -o 
     && rm -rf /var/lib/apt/lists/* \
     && mv /usr/bin/gh /usr/bin/gh.real
 
-RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
-    && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz" -o /tmp/mise.tgz \
-    && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/SHASUMS256.txt" -o /tmp/SHASUMS256.txt \
-    && want="$(grep "mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz\$" /tmp/SHASUMS256.txt | awk '{print $1}')" \
-    && echo "${want}  /tmp/mise.tgz" | sha256sum -c - \
-    && tar -C /tmp -xzf /tmp/mise.tgz \
-    && mv /tmp/mise/bin/mise /usr/local/bin/mise \
-    && rm -rf /tmp/mise /tmp/mise.tgz /tmp/SHASUMS256.txt \
-    && mise --version
-
 RUN arch="$(dpkg --print-architecture)" \
     && case "$arch" in \
       amd64) want="${YQ_SHA256_AMD64}" ;; \
@@ -94,10 +83,7 @@ COPY --chmod=0755 base/capsule-unlock.sh /usr/local/bin/capsule-unlock
 COPY --chmod=0755 base/gh.sh /usr/bin/gh
 COPY --chmod=0755 extra-tools.sh /usr/local/bin/extra-tools.sh
 
-COPY --chmod=0755 base/start.d/10-mise.sh /etc/capsule/start.d/10-mise.sh
-COPY base/zshrc.d/10-mise.zsh /etc/capsule/zshrc.d/10-mise.zsh
-
-RUN mkdir -p /etc/capsule \
+RUN mkdir -p /etc/capsule/start.d /etc/capsule/zshrc.d \
     && printf '{\n  "image_version": "%s",\n  "source_commit": "%s",\n  "build_date": "%s",\n  "base_os": "ubuntu:24.04"\n}\n' \
       "${IMAGE_VERSION}" "${SOURCE_COMMIT}" "${BUILD_DATE}" > /etc/capsule/info.json
 
@@ -113,7 +99,7 @@ ENV CAPSULE_INFO="fenix-base ${IMAGE_VERSION} (${SOURCE_COMMIT}, built ${BUILD_D
 USER ${DEV_USER}
 WORKDIR ${DEV_HOME}
 
-ENV PATH="${DEV_HOME}/.local/share/mise/shims:${DEV_HOME}/.local/bin:/usr/local/bin:${PATH}"
+ENV PATH="${DEV_HOME}/.local/bin:/usr/local/bin:${PATH}"
 
 RUN mkdir -p ${DEV_HOME}/workspace
 
@@ -121,3 +107,35 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
   CMD sh -c 'f="$HOME/.capsule/status"; [ ! -f "$f" ] || grep -q "rc=0" "$f"'
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
+
+FROM base AS cloud-ops
+ARG CLOUD_CLIS=""
+COPY --chmod=0755 base/cloud-ops.sh /usr/local/bin/cloud-ops.sh
+USER root
+RUN CLOUD_CLIS="${CLOUD_CLIS}" /usr/local/bin/cloud-ops.sh
+USER ${DEV_USER}
+
+FROM cloud-ops AS agents
+ARG CODING_AGENTS=""
+COPY --chmod=0755 base/agents.sh /usr/local/bin/agents.sh
+USER root
+RUN CODING_AGENTS="${CODING_AGENTS}" /usr/local/bin/agents.sh
+USER ${DEV_USER}
+
+FROM agents AS mise
+ARG MISE_VERSION=v2026.10.10
+USER root
+RUN arch="$(dpkg --print-architecture | sed 's/amd64/x64/;s/arm64/arm64/')" \
+    && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz" -o /tmp/mise.tgz \
+    && curl -fsSL "https://github.com/jdx/mise/releases/download/${MISE_VERSION}/SHASUMS256.txt" -o /tmp/SHASUMS256.txt \
+    && want="$(grep "mise-${MISE_VERSION}-linux-${arch}-musl.tar.gz\$" /tmp/SHASUMS256.txt | awk '{print $1}')" \
+    && echo "${want}  /tmp/mise.tgz" | sha256sum -c - \
+    && tar -C /tmp -xzf /tmp/mise.tgz \
+    && mv /tmp/mise/bin/mise /usr/local/bin/mise \
+    && rm -rf /tmp/mise /tmp/mise.tgz /tmp/SHASUMS256.txt \
+    && mise --version
+COPY --chmod=0755 base/start.d/10-mise.sh /etc/capsule/start.d/10-mise.sh
+COPY base/zshrc.d/10-mise.zsh /etc/capsule/zshrc.d/10-mise.zsh
+USER ${DEV_USER}
+
+ENV PATH="${DEV_HOME}/.local/share/mise/shims:${DEV_HOME}/.local/bin:/usr/local/bin:${PATH}"
