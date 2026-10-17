@@ -60,3 +60,42 @@ jobs:
           sarif_file: trivy-rebuild.sarif
           category: trivy-rebuild
 
+
+  install-matrix:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        tool: [aws, gcloud, az]
+        platform: [linux/amd64, linux/arm64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392 # v3.6.0
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build ${{ matrix.tool }} on ${{ matrix.platform }} (no cache)
+        run: |
+          set -ex
+          docker buildx build --no-cache --pull \
+            --platform "${{ matrix.platform }}" \
+            --build-arg "CLOUD_CLIS=${{ matrix.tool }}" \
+            --build-arg "CODING_AGENTS=" \
+            --target cloud-ops -t "fenix-cell:${{ matrix.tool }}" --load .
+
+      - name: Assert ${{ matrix.tool }} runs
+        run: |
+          set -ex
+          img="fenix-cell:${{ matrix.tool }}"
+          plat="${{ matrix.platform }}"
+          case "${{ matrix.tool }}" in
+            aws) docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'aws --version 2>&1 | grep -qE "Python/3\.12\."' ;;
+            gcloud) docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'gcloud info 2>/dev/null | grep -qE "Python Location: \[/usr/bin/python3\]"' ;;
+            az) docker run --rm --platform "$plat" --entrypoint bash "$img" -lc 'az version' ;;
+          esac
+
+      - name: One python on PATH (${{ matrix.tool }})
+        run: ./.github/scripts/check-single-python.sh "fenix-cell:${{ matrix.tool }}"

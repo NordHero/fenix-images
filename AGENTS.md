@@ -74,9 +74,11 @@ their capsules. No image is published.
   release branch),
   `scheduled-rebuild.yml` (weekly no-cache rebuild + Trivy scan; no publish),
   `close-external-prs.yml` (closes fork PRs from non-members),
-  `mise-version-check.yml` (daily; runs `.github/scripts/bump-mise.sh` to keep
-  one self-updating `MISE_VERSION` bump PR).
-- `.github/scripts/` — CI-only helper scripts (`bump-mise.sh`).
+  `tool-version-check.yml` (daily; runs `.github/scripts/bump-tools.sh` to keep
+  one self-updating version-bump PR per pinned tool; never touches trust
+  anchors).
+- `.github/scripts/` — CI-only helper scripts (`bump-tools.sh`,
+  `check-single-python.sh`, `image-size-report.sh`).
 
 There is no root `compose.yaml` or root `mise.toml`; the example capsule is the
 single reference.

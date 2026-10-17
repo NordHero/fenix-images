@@ -125,10 +125,11 @@ with `./build-images.sh` to pick up the patches a scan flags.
 `shellcheck`, `shfmt`, `hadolint` and `gitleaks` run locally as pre-commit
 hooks (`.pre-commit-config.yaml`), not in CI.
 
-A daily **mise version check** (`.github/workflows/mise-version-check.yml`)
-compares the pinned `MISE_VERSION` against the latest mise release and maintains
-a single self-updating pull request to bump it, so security releases are
-surfaced promptly.
+A daily **tool version check** (`.github/workflows/tool-version-check.yml`)
+compares each pinned tool version against its latest upstream release and
+maintains one self-updating pull request per tool to bump it, so security
+releases are surfaced promptly. It bumps version/checksum pins only and never
+changes a trust anchor; key rotation is a human-reviewed change.
 
 ## Reporting a vulnerability
 
